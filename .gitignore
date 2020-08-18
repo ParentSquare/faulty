@@ -1,0 +1,9 @@
+/.bundle/
+/Gemfile.lock
+/vendor/
+
+/coverage/
+/doc/
+/.yardoc/
+
+.byebug_history
