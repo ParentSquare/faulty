@@ -12,13 +12,12 @@ module Faulty
   # names don't overlap between scopes. For example, if using the Redis storage
   # backend, you should specify different key prefixes for each scope.
   class Scope
-    attr_reader :name
     attr_reader :options
 
     # @!attribute [r] cache
     #   @return [Cache::Interface] A cache backend if you want
     #     to use Faulty's cache support. Automatically wrapped in a
-    #     {Cache::FaultTolerantProxy}. Default `nil`.
+    #     {Cache::FaultTolerantProxy}. Default `Cache::Null.new`.
     # @!attribute [r] storage
     #   @return [Storage::Interface] The storage backend.
     #     Automatically wrapped in a {Storage::FaultTolerantProxy}.
@@ -42,35 +41,31 @@ module Faulty
         self.listeners ||= [Events::LogListener.new]
         self.notifier ||= Events::Notifier.new(listeners || [])
 
-        unless storage.is_a?(Storage::FaultTolerantProxy)
-          self.storage ||= Storage::Memory.new
-          self.storage = Storage::FaultTolerantProxy.new(
-            storage,
-            notifier: notifier
-          )
+        self.storage ||= Storage::Memory.new
+        unless storage.fault_tolerant?
+          self.storage = Storage::FaultTolerantProxy.new(storage, notifier: notifier)
         end
 
-        if cache && !cache.is_a?(Cache::FaultTolerantProxy)
-          self.cache = Cache::FaultTolerantProxy.new(
-            cache,
-            notifier: notifier
-          )
+        self.cache ||= Cache::Default.new
+        unless cache.fault_tolerant?
+          self.cache = Cache::FaultTolerantProxy.new(cache, notifier: notifier)
         end
       end
 
       def required
-        %i[storage notifier]
+        %i[cache storage notifier]
       end
     end
 
     # Create a new Faulty Scope
     #
+    # Note, the process of creating a new scope is not thread safe,
+    # so make sure scopes are setup before spawning threads.
+    #
     # @see Options
-    # @param name [Symbol, String] The name of the scope
     # @param options [Hash] Attributes for {Options}
     # @yield [Options] For setting options in a block
-    def initialize(name, **options, &block)
-      @name = name
+    def initialize(**options, &block)
       @circuits = Concurrent::Map.new
       @options = Options.new(options, &block)
     end

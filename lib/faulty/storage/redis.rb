@@ -45,7 +45,7 @@ module Faulty
         opened = nil
         redis do |r|
           opened = compare_and_set(r, state_key(circuit), ['closed', nil], 'open')
-          r.set(opened_at_key(circuit), Faulty.current_time.to_i) if opened
+          r.set(opened_at_key(circuit), Faulty.current_time.to_i)
         end
         opened
       end
@@ -94,7 +94,7 @@ module Faulty
           lock: futures[:lock].value&.to_sym,
           opened_at: futures[:opened_at].value ? Time.at(futures[:opened_at].value.to_i).utc : nil,
           cool_down: circuit.options.cool_down,
-          rate_min_sample: circuit.options.rate_min_sample,
+          sample_threshold: circuit.options.sample_threshold,
           rate_threshold: circuit.options.rate_threshold
         ))
       end
@@ -102,6 +102,10 @@ module Faulty
       def history(circuit)
         entries = redis { |r| r.lrange(entries_key(circuit), 0, -1) }
         map_entries(entries)
+      end
+
+      def fault_tolerant?
+        false
       end
 
       private

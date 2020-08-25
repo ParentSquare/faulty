@@ -1,9 +1,14 @@
 # frozen_string_literal: true
 
+require 'securerandom'
 require 'concurrent-ruby'
 
 require 'faulty/immutable_options'
+require 'faulty/cache/default'
 require 'faulty/cache/fault_tolerant_proxy'
+require 'faulty/cache/mock'
+require 'faulty/cache/null'
+require 'faulty/cache/rails'
 require 'faulty/circuit'
 require 'faulty/error'
 require 'faulty/events'
@@ -39,7 +44,7 @@ module Faulty
       raise "#{self} already initialized" if @scopes
 
       @scopes = Concurrent::Map.new
-      register(Scope.new(scope_name, **config, &block)) unless scope_name.nil?
+      register(scope_name, Scope.new(**config, &block)) unless scope_name.nil?
       self
     end
 
@@ -61,13 +66,15 @@ module Faulty
 
     # Register a scope to the global Faulty state
     #
-    # Will not reaplace an existing scope with the same name. Check the
+    # Will not replace an existing scope with the same name. Check the
     # return value if you need to know whether the scope already existed.
     #
+    # @param name [Symbol] The name of the scope to register
+    # @param scope [Scope] The scope to register
     # @return [Scope, nil] The previously-registered scope of that name if
     #   it already existed, otherwise nil.
-    def register(scope)
-      @scopes.put_if_absent(scope.name, scope)
+    def register(name, scope)
+      @scopes.put_if_absent(name, scope)
     end
 
     # Get or create a circuit for the default scope

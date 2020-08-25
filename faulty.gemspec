@@ -22,6 +22,7 @@ Gem::Specification.new do |spec|
 
   spec.add_runtime_dependency 'concurrent-ruby', '~> 1.0'
 
+  spec.add_development_dependency 'activesupport', '>= 4.2'
   spec.add_development_dependency 'bundler', '>= 1.17', '< 3'
   spec.add_development_dependency 'byebug', '~> 11.0'
   spec.add_development_dependency 'irb', '~> 1.0'
@@ -32,5 +33,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rubocop', '0.81.0'
   spec.add_development_dependency 'rubocop-rspec', '1.41.0'
   spec.add_development_dependency 'simplecov', '~> 0.18'
+  spec.add_development_dependency 'timecop', '>= 0.9'
   spec.add_development_dependency 'yard', '~> 0.9.25'
 end

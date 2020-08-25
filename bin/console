@@ -5,4 +5,8 @@ require 'bundler/setup'
 require 'faulty'
 require 'byebug'
 require 'irb'
+
+# For default cache support
+require 'active_support'
+
 IRB.start

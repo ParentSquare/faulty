@@ -30,7 +30,7 @@ module Faulty
             failure_rate: stats[:failure_rate],
             sample_size: stats[:sample_size],
             cool_down: circuit_options.cool_down,
-            rate_min_sample: circuit_options.rate_min_sample,
+            sample_threshold: circuit_options.sample_threshold,
             rate_threshold: circuit_options.rate_threshold
           )
         end
@@ -74,7 +74,7 @@ module Faulty
       def open(circuit)
         memory = fetch(circuit)
         opened = memory.state.compare_and_set(:closed, :open)
-        memory.opened_at = Faulty.current_time if opened
+        memory.opened_at = Faulty.current_time
         opened
       end
 
@@ -105,6 +105,10 @@ module Faulty
 
       def history(circuit)
         fetch(circuit).runs.value
+      end
+
+      def fault_tolerant?
+        true
       end
 
       private

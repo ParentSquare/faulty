@@ -8,7 +8,7 @@ module Faulty
     :failure_rate,
     :sample_size,
     :cool_down,
-    :rate_min_sample,
+    :sample_threshold,
     :rate_threshold,
     :stub
   ) do
@@ -25,7 +25,7 @@ module Faulty
     ].freeze
 
     def open?
-      state == :open && opened_at + cool_down >= Faulty.current_time
+      state == :open && opened_at + cool_down > Faulty.current_time
     end
 
     def closed?
@@ -33,7 +33,7 @@ module Faulty
     end
 
     def half_open?
-      state == :open && opened_at + cool_down < Faulty.current_time
+      state == :open && opened_at + cool_down <= Faulty.current_time
     end
 
     def locked_open?
@@ -51,13 +51,9 @@ module Faulty
     end
 
     def fails_threshold?
-      return false if sample_size < rate_min_sample
+      return false if sample_size < sample_threshold
 
       failure_rate >= rate_threshold
-    end
-
-    def cooled_down?
-      state == :open && opened_at + cool_down < Faulty.current_time
     end
 
     private
@@ -70,7 +66,7 @@ module Faulty
     end
 
     def required
-      %i[state failure_rate sample_size cool_down rate_min_sample rate_threshold stub]
+      %i[state failure_rate sample_size cool_down sample_threshold rate_threshold stub]
     end
 
     def defaults

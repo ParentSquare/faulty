@@ -4,12 +4,15 @@ module Faulty
   module Events
     # All possible events that can be raised by Faulty
     EVENTS = %i[
-      circuit_success
-      circuit_failure
-      circuit_skipped
-      circuit_opened
-      circuit_closed
       cache_failure
+      circuit_cache_hit
+      circuit_cache_miss
+      circuit_cache_write
+      circuit_closed
+      circuit_failure
+      circuit_opened
+      circuit_skipped
+      circuit_success
       storage_failure
     ].freeze
   end

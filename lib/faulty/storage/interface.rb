@@ -37,6 +37,9 @@ module Faulty
       def history(circuit)
         raise NotImplementedError
       end
+
+      def fault_tolerant?
+      end
     end
   end
 end

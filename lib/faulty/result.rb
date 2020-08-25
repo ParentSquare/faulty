@@ -23,20 +23,20 @@ module Faulty
     end
 
     def get
-      validate_checked!
+      validate_checked!('get')
       raise 'Result: Tried to get value for error result' unless ok?
 
       @ok
     end
 
     def error
-      validate_checked!
+      validate_checked!('error')
       raise 'Result: Tried to get error for ok result' unless error?
 
-      @ok
+      @error
     end
 
-    def fetch(default = nil)
+    def or_default(default = nil)
       if ok_unchecked?
         @ok
       elsif block_given?
@@ -52,8 +52,8 @@ module Faulty
       !@ok.eql?(NOTHING)
     end
 
-    def validate_checked!
-      raise 'Result: Called get without checking ok? or error?' unless @checked
+    def validate_checked!(method)
+      raise "Result: Called #{method} without checking ok? or error?" unless @checked
     end
   end
 end

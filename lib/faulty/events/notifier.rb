@@ -8,6 +8,8 @@ module Faulty
       end
 
       def notify(event, payload)
+        raise "Unknown event #{event}" unless EVENTS.include?(event)
+
         @listeners.each { |l| l.handle(event, payload) }
       end
     end

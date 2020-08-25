@@ -23,6 +23,9 @@ Layout/FirstArrayElementIndentation:
 Layout/FirstHashElementIndentation:
   EnforcedStyle: consistent
 
+Layout/LineLength:
+  Max: 120
+
 Layout/MultilineMethodCallIndentation:
   EnforcedStyle: indented
 
@@ -32,10 +35,16 @@ Lint/RaiseException:
 Lint/StructNewOverride:
   Enabled: true
 
+RSpec/ExampleLength:
+  Enabled: false
+
 RSpec/FilePath:
   Enabled: false
 
 RSpec/NamedSubject:
+  Enabled: false
+
+RSpec/MultipleExpectations:
   Enabled: false
 
 Metrics/AbcSize:
@@ -43,9 +52,6 @@ Metrics/AbcSize:
 
 Metrics/BlockLength:
   Enabled: false
-
-Metrics/LineLength:
-  Max: 120
 
 Metrics/MethodLength:
   Max: 30
@@ -70,4 +76,7 @@ Style/HashTransformKeys:
   Enabled: false
 
 Style/HashTransformValues:
+  Enabled: false
+
+Style/IfUnlessModifier:
   Enabled: false

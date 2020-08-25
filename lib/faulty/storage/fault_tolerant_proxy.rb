@@ -66,13 +66,17 @@ module Faulty
         @storage.history(circuit)
       end
 
+      def fault_tolerant?
+        true
+      end
+
       private
 
       def stub_status(circuit)
         Faulty::Status.new(
           cool_down: circuit.options.cool_down,
           stub: true,
-          rate_min_sample: circuit.options.rate_min_sample,
+          sample_threshold: circuit.options.sample_threshold,
           rate_threshold: circuit.options.rate_threshold
         )
       end

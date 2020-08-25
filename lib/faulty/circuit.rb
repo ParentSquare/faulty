@@ -24,13 +24,27 @@ module Faulty
   # If you're sure you want ruby's generic Timeout, you can apply it yourself
   # inside the circuit block.
   class Circuit # rubocop:disable Metrics/ClassLength
+    CACHE_REFRESH_SUFFIX = '.faulty_refresh'
+
     attr_reader :name
     attr_reader :options
 
     # @!attribute [r] cache_expires_in
     #   @return [Integer, nil] The number of seconds to keep
     #     cached results. A value of nil will keep the cache indefinitely.
+    #     Default `86400`.
+    # @!attribute [r] cache_refreshes_after
+    #   @return [Integer, nil] The number of seconds after which we attempt
+    #     to refresh the cache even if it's not expired. If the circuit fails,
+    #     we continue serving the value from cache until `cache_expires_in`.
+    #     A value of `nil` disables cache refreshing.
     #     Default `900`.
+    # @!attribute [r] cache_refresh_jitter
+    #   @return [Integer] The maximum number of seconds to randomly add or
+    #     subtract from `cache_refreshes_after` when determining whether to
+    #     refresh the cache.  A non-zero value helps reduce a "thundering herd"
+    #     cache refresh in most scenarios. Set to `0` to disable jitter.
+    #     Default `0.8 * cache_refreshes_after`.
     # @!attribute [r] cool_down
     #   @return [Integer] The number of seconds the circuit will
     #     stay open after it is tripped. Default 300.
@@ -42,28 +56,30 @@ module Faulty
     #   @return [Float] The minimum failure rate required to trip
     #     the circuit. For example, `0.5` requires at least a 50% failure rate to
     #     trip. Default `0.5`.
-    # @!attribute [r] rate_min_sample
+    # @!attribute [r] sample_threshold
     #   @return [Integer] The minimum number of runs required before
     #     a circuit can trip. A value of 1 means that the circuit will trip
     #     immediately when a failure occurs. Default `3`.
     # @!attribute [r] errors
-    #   @return [Array<Error>] An array of errors that are considered circuit
+    #   @return [Error, Array<Error>] An array of errors that are considered circuit
     #     failures. Default `[StandardError]`.
     # @!attribute [r] exclude
-    #   @return [Array<Error>] An array of errors that will be captured and
+    #   @return [Error, Array<Error>] An array of errors that will be captured and
     #     considered circuit failures. Default `[]`.
     # @!attribute [r] cache
-    #   @return [Cache::Interface] The cache backend if cache support is desired.
+    #   @return [Cache::Interface] The cache backend. Default `Cache::Null.new`
     # @!attribute [r] notifier
-    #   @return [Events::Notifier] A Faulty notifier
+    #   @return [Events::Notifier] A Faulty notifier. Default `Events::Notifier.new`
     # @!attribute [r] storage
-    #   @return [Storage::Interface] The storage backend
+    #   @return [Storage::Interface] The storage backend. Default `Storage::Memory.new`
     Options = Struct.new(
       :cache_expires_in,
+      :cache_refreshes_after,
+      :cache_refresh_jitter,
       :cool_down,
       :evaluation_window,
       :rate_threshold,
-      :rate_min_sample,
+      :sample_threshold,
       :errors,
       :exclude,
       :cache,
@@ -76,28 +92,41 @@ module Faulty
 
       def defaults
         {
-          cache_expires_in: 900,
+          cache_expires_in: 86_400,
+          cache_refreshes_after: 900,
           cool_down: 300,
           errors: [StandardError],
           exclude: [],
           evaluation_window: 60,
           rate_threshold: 0.5,
-          rate_min_sample: 3
+          sample_threshold: 3
         }
       end
 
       def required
         %i[
-          cache_expires_in
+          cache
           cool_down
           errors
           exclude
           evaluation_window
           rate_threshold
-          rate_min_sample
+          sample_threshold
           notifier
           storage
         ]
+      end
+
+      def finalize
+        self.cache ||= Cache::Default.new
+        self.notifier ||= Events::Notifier.new
+        self.storage ||= Storage::Memory.new
+        self.errors = [errors] if errors && !errors.is_a?(Array)
+        self.exclude = [exclude] if exclude && !exclude.is_a?(Array)
+
+        unless cache_refreshes_after.nil?
+          self.cache_refresh_jitter = 0.8 * cache_refreshes_after
+        end
       end
     end
 
@@ -138,8 +167,8 @@ module Faulty
     # @return [Result<Object, Error>] A result where the ok value is the return
     #   value of the block, or the error value is an error captured by the
     #   circuit.
-    def try_run(**options)
-      Result.new(ok: run(**options, &Proc.new))
+    def try_run(**options, &block)
+      Result.new(ok: run(**options, &block))
     rescue FaultyError => e
       Result.new(error: e)
     end
@@ -171,27 +200,13 @@ module Faulty
     # @raise {CircuitFailureError} if this run fails, but doesn't cause the
     #   circuit to trip
     # @return The return value of the block
-    def run(cache: nil)
-      result = cache_read(cache)
-      return result unless result.nil?
+    def run(cache: nil, &block)
+      cached_value = cache_read(cache)
+      # return cached unless cached.nil?
+      return cached_value if !cached_value.nil? && !cache_should_refresh?(cache)
+      return run_skipped(cached_value) unless status.can_run?
 
-      unless status.can_run?
-        skipped!
-        raise OpenCircuitError.new(nil, self)
-      end
-
-      begin
-        result = yield
-        success!
-        cache_write(cache, result)
-        result
-      rescue *options.errors => e
-        raise if options.exclude.any? { |ex| e.is_a?(ex) }
-
-        raise CircuitTrippedError.new(nil, self) if failure!(e)
-
-        raise CircuitFailureError.new(nil, self)
-      end
+      run_exec(cached_value, cache, &block)
     end
 
     # Force the circuit to stay open until unlocked
@@ -251,6 +266,30 @@ module Faulty
     end
 
     private
+
+    def run_skipped(cached_value)
+      skipped!
+      raise OpenCircuitError.new(nil, self) if cached_value.nil?
+
+      cached_value
+    end
+
+    def run_exec(cached_value, cache_key)
+      result = yield
+      success!
+      cache_write(cache_key, result)
+      result
+    rescue *options.errors => e
+      raise if options.exclude.any? { |ex| e.is_a?(ex) }
+
+      if cached_value.nil?
+        raise CircuitTrippedError.new(nil, self) if failure!(e)
+
+        raise CircuitFailureError.new(nil, self)
+      else
+        cached_value
+      end
+    end
 
     # @return [Boolean] True if the circuit transitioned to closed
     def success!
@@ -317,9 +356,11 @@ module Faulty
     # @return The cached value, or nil if not present
     def cache_read(key)
       return unless key
-      return unless options.cache
 
-      options.cache.read(key.to_s)
+      result = options.cache.read(key.to_s)
+      event = result.nil? ? :circuit_cache_miss : :circuit_cache_hit
+      options.notifier.notify(event, circuit: self, key: key)
+      result
     end
 
     # Write to the cache if it is configured
@@ -328,9 +369,38 @@ module Faulty
     # @return [void]
     def cache_write(key, value)
       return unless key
-      return unless options.cache
 
+      options.notifier.notify(:circuit_cache_write, circuit: self, key: key)
       options.cache.write(key.to_s, value, expires_in: options.cache_expires_in)
+
+      unless options.cache_refreshes_after.nil?
+        options.cache.write(cache_refresh_key(key.to_s), next_refresh_time, expires_in: options.cache_expires_in)
+      end
+    end
+
+    # Check whether the cache should be refreshed
+    #
+    # Should be called only if cache is present
+    #
+    # @return [Boolean] true if the cache should be refreshed
+    def cache_should_refresh?(key)
+      time = options.cache.read(cache_refresh_key(key.to_s)).to_i
+      time < Faulty.current_time
+    end
+
+    # Get the next time to refresh the cache when writing to it
+    #
+    # @return [Integer] The timestamp to refresh at
+    def next_refresh_time
+      (
+        Faulty.current_time +
+        options.cache_refreshes_after +
+        (SecureRandom.random_number * 2 - 1) * options.cache_refresh_jitter
+      ).floor
+    end
+
+    def cache_refresh_key(key)
+      "#{key}#{CACHE_REFRESH_SUFFIX}"
     end
 
     # Alias to the storage engine from options

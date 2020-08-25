@@ -27,6 +27,9 @@ module Faulty
       # @return [void]
       def write(key, value, expires_in: nil)
       end
+
+      def fault_tolerant?
+      end
     end
   end
 end

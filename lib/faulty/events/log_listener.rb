@@ -13,35 +13,66 @@ module Faulty
       def handle(event, payload)
         return unless EVENTS.include?(event)
 
-        public_send(event, payload)
+        public_send(event, payload) if respond_to?(event)
+      end
+
+      def circuit_cache_hit(payload)
+        log(:debug, 'Circuit cache hit', payload[:circuit].name, key: payload[:key])
+      end
+
+      def circuit_cache_miss(payload)
+        log(:debug, 'Circuit cache miss', payload[:circuit].name, key: payload[:key])
+      end
+
+      def circuit_cache_write(payload)
+        log(:debug, 'Circuit cache write', payload[:circuit].name, key: payload[:key])
       end
 
       def circuit_success(payload)
-        logger.debug("Circuit succeeded: #{payload[:circuit].name}=#{payload[:status].state}")
+        log(:debug, 'Circuit succeeded', payload[:circuit].name, state: payload[:status].state)
       end
 
       def circuit_failure(payload)
-        logger.debug("Circuit failed: #{payload[:circuit].name}=#{payload[:status].state}: #{payload[:error].message}")
+        log(
+          :error, 'Circuit failed', payload[:circuit].name,
+          state: payload[:status].state,
+          error: payload[:error].message
+        )
       end
 
       def circuit_skipped(payload)
-        logger.debug("Circuit skipped: #{payload[:circuit].name}")
+        log(:warn, 'Circuit skipped', payload[:circuit].name)
       end
 
       def circuit_opened(payload)
-        logger.debug("Circuit opened: #{payload[:circuit].name}: #{payload[:error].message}")
+        log(:error, 'Circuit opened', payload[:circuit].name, error: payload[:error].message)
       end
 
       def circuit_closed(payload)
-        logger.debug("Circuit closed: #{payload[:circuit].name}")
+        log(:info, 'Circuit closed', payload[:circuit].name)
       end
 
       def cache_failure(payload)
-        logger.debug("Cache Failure: #{payload[:action]}(#{payload[:key]}): #{payload[:error]}")
+        log(
+          :error, 'Cache failure', payload[:action],
+          key: payload[:key],
+          error: payload[:error].message
+        )
       end
 
       def storage_failure(payload)
-        logger.debug("Storage Failure: #{payload[:action]}(#{payload[:circuit].name}): #{payload[:error]}")
+        log(
+          :error, 'Storage failure', payload[:action],
+          circuit: payload[:circuit].name,
+          error: payload[:error].message
+        )
+      end
+
+      private
+
+      def log(level, msg, action, extra = {})
+        extra_str = extra.map { |k, v| "#{k}=#{v}" }.join(' ')
+        logger.public_send(level, "#{msg}: #{action} #{extra_str}")
       end
     end
   end
