@@ -17,7 +17,7 @@ module Faulty
     # @!attribute [r] cache
     #   @return [Cache::Interface] A cache backend if you want
     #     to use Faulty's cache support. Automatically wrapped in a
-    #     {Cache::FaultTolerantProxy}. Default `Cache::Null.new`.
+    #     {Cache::FaultTolerantProxy}. Default `Cache::Default.new`.
     # @!attribute [r] storage
     #   @return [Storage::Interface] The storage backend.
     #     Automatically wrapped in a {Storage::FaultTolerantProxy}.
@@ -38,7 +38,6 @@ module Faulty
       private
 
       def finalize
-        self.listeners ||= [Events::LogListener.new]
         self.notifier ||= Events::Notifier.new(listeners || [])
 
         self.storage ||= Storage::Memory.new
@@ -54,6 +53,12 @@ module Faulty
 
       def required
         %i[cache storage notifier]
+      end
+
+      def defaults
+        {
+          listeners: [Events::LogListener.new]
+        }
       end
     end
 

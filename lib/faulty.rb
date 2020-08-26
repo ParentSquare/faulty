@@ -82,9 +82,17 @@ module Faulty
       @scopes.put_if_absent(name, scope)
     end
 
+    # Get the options for the default scope
+    #
+    # @raise MissingDefaultScopeError If the default scope has not been created
+    # @return [Scope::Options]
+    def options
+      default.options
+    end
+
     # Get or create a circuit for the default scope
     #
-    # @raise RuntimeError If the default scope has not been created
+    # @raise UninitializedError If the default scope has not been created
     # @param (see Scope#circuit)
     # @yield (see Scope#circuit)
     # @return (see Scope#circuit)
