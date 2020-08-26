@@ -55,6 +55,13 @@ module Faulty
         options.notifier.notify(:cache_failure, key: key, action: :write, error: e)
         nil
       end
+
+      # This cache makes any cache fault tolerant, so this is always `true`
+      #
+      # @return [true]
+      def fault_tolerant?
+        true
+      end
     end
   end
 end

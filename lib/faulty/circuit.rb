@@ -22,7 +22,7 @@ module Faulty
   # You should prefer a network timeout like `open_timeout` and `read_timeout`, or
   # write your own code to periodically check how long it has been running.
   # If you're sure you want ruby's generic Timeout, you can apply it yourself
-  # inside the circuit block.
+  # inside the circuit run block.
   class Circuit # rubocop:disable Metrics/ClassLength
     CACHE_REFRESH_SUFFIX = '.faulty_refresh'
 
@@ -267,6 +267,10 @@ module Faulty
 
     private
 
+    # Process a skipped run
+    #
+    # @param cached_value The cached value if one is available
+    # @return The result from cache if available
     def run_skipped(cached_value)
       skipped!
       raise OpenCircuitError.new(nil, self) if cached_value.nil?
@@ -274,6 +278,11 @@ module Faulty
       cached_value
     end
 
+    # Excecute a run
+    #
+    # @param cached_value The cached value if one is available
+    # @param cache_key [String, nil] The cache key if one is given
+    # @return The run result
     def run_exec(cached_value, cache_key)
       result = yield
       success!

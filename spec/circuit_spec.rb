@@ -47,7 +47,7 @@ RSpec.context :circuits do
         circuit.run { raise 'failed' }
       end.to raise_error(
         an_instance_of(Faulty::CircuitFailureError)
-        .and(having_attributes(message: 'circuit=test', circuit: circuit))
+        .and(having_attributes(message: 'circuit error for "test"', circuit: circuit))
       )
     end
 
@@ -57,7 +57,7 @@ RSpec.context :circuits do
         circuit.run { raise 'failed' }
       end.to raise_error(
         an_instance_of(Faulty::CircuitTrippedError)
-        .and(having_attributes(message: 'circuit=test', circuit: circuit))
+        .and(having_attributes(message: 'circuit error for "test"', circuit: circuit))
       )
     end
 
@@ -66,7 +66,7 @@ RSpec.context :circuits do
         open_circuit.run { 'ok' }
       end.to raise_error(
         an_instance_of(Faulty::OpenCircuitError)
-        .and(having_attributes(message: 'circuit=test', circuit: open_circuit))
+        .and(having_attributes(message: 'circuit error for "test"', circuit: open_circuit))
       )
     end
 
@@ -224,13 +224,13 @@ RSpec.context :circuits do
     end
   end
 
-  context :memory_storage do
+  context 'with memory storage' do
     let(:storage) { Faulty::Storage::Memory.new }
 
     it_behaves_like 'circuit'
   end
 
-  context :redis_storage do
+  context 'with redis storage' do
     let(:storage) { Faulty::Storage::Redis.new }
 
     after { circuit.reset! }

@@ -35,31 +35,34 @@ module Faulty
     # If you prefer dependency-injection instead of global state, you can skip
     # init and pass a {Scope} directly to your dependencies.
     #
-    # @param scope_name [Symbol] The scope to create. Can be set to nil to skip
-    #   creating a scope during init.
+    # @param scope_name [Symbol] The name of the default scope. Can be set to
+    #   `nil` to skip creating a default scope.
     # @param (see Scope#initialize)
     # @yield (see Scope#initialize)
     # @return [self]
     def init(scope_name = :default, **config, &block)
-      raise "#{self} already initialized" if @scopes
+      raise AlreadyInitializedError if @scopes
 
+      @default_scope = scope_name
       @scopes = Concurrent::Map.new
       register(scope_name, Scope.new(**config, &block)) unless scope_name.nil?
       self
     end
 
-    # Get the default scope
+    # Get the default scope given during {#init}
     #
     # @return [Scope, nil] The default scope if it is registered
     def default
-      self[:default]
+      raise MissingDefaultScopeError unless @default_scope
+
+      self[@default_scope]
     end
 
     # Get a scope by name
     #
     # @return [Scope, nil] The named scope if it is registered
     def [](scope_name)
-      raise 'Faulty is not initialized' unless @scopes
+      raise UninitializedError unless @scopes
 
       @scopes[scope_name]
     end
@@ -74,7 +77,7 @@ module Faulty
     # @return [Scope, nil] The previously-registered scope of that name if
     #   it already existed, otherwise nil.
     def register(name, scope)
-      raise 'Faulty is not initialized' unless @scopes
+      raise UninitializedError unless @scopes
 
       @scopes.put_if_absent(name, scope)
     end
@@ -87,7 +90,6 @@ module Faulty
     # @return (see Scope#circuit)
     def circuit(name, **config, &block)
       scope = default
-      raise 'No default scope. Create one or get your scope with Faulty[:scope_name]' unless scope
 
       scope.circuit(name, **config, &block)
     end

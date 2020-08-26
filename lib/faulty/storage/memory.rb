@@ -2,9 +2,28 @@
 
 module Faulty
   module Storage
+    # The default in-memory storage for circuits
+    #
+    # This implementation is most suitable to single-process, low volume
+    # usage. It is thread-safe and circuit state is shared across threads.
+    #
+    # Circuit state and runs are stored in memory. Although runs have a maximum
+    # size within a circuit, there is no limit on the number of circuits that
+    # can be stored. This means the user should be careful about the number of
+    # circuits that are created. To that end, it's a good idea to avoid
+    # dynamically-named circuits with this backend.
+    #
+    # For a more robust multi-process implementation, use the {Redis} storage
+    # backend.
+    #
+    # This can be used as a reference implementation for storage backends that
+    # store a list of circuit run entries.
     class Memory
       attr_reader :options
 
+      # @!attribute [r] max_sample_size
+      #   @return [Integer] The number of cache run entries to keep in memory
+      #     for each circuit. Default `100`.
       Options = Struct.new(:max_sample_size) do
         include ImmutableOptions
 
@@ -13,6 +32,9 @@ module Faulty
         end
       end
 
+      # The internal object for storing a circuit
+      #
+      # @private
       MemoryCircuit = Struct.new(:state, :runs, :opened_at, :lock) do
         def initialize
           self.state = Concurrent::Atom.new(:closed)
@@ -37,6 +59,8 @@ module Faulty
         end
       end
 
+      # @param options [Hash] Attributes for {Options}
+      # @yield [Options] For setting options in a block
       def initialize(**options, &block)
         @circuits = Concurrent::Map.new
         @options = Options.new(options, &block)

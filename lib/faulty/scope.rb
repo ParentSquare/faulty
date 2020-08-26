@@ -89,6 +89,9 @@ module Faulty
 
     private
 
+    # Get circuit options from the scope options
+    #
+    # @return [Hash] The circuit options
     def circuit_options
       options = @options.to_h
       options.delete(:listeners)

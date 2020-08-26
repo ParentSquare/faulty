@@ -3,12 +3,25 @@
 module Faulty
   module Events
     # A simple listener implementation that uses callback blocks as handlers
+    #
+    # Each event in {EVENTS} has a method on this class that can be used
+    # to register a callback for that event.
+    #
+    # @example
+    #   listener = CallbackListener.new
+    #   listener.circuit_opened do |payload|
+    #     logger.error(
+    #       "Circuit #{payload[:circuit].name} opened: #{payload[:error].message}"
+    #     )
+    #   end
     class CallbackListener
       def initialize
         @handlers = {}
         yield self if block_given?
       end
 
+      # @param (see ListenerInterface#handle)
+      # @return [void]
       def handle(event, payload)
         return unless EVENTS.include?(event)
         return unless @handlers.key?(event)

@@ -73,6 +73,9 @@ module Faulty
         @storage.history(circuit)
       end
 
+      # This cache makes any storage fault tolerant, so this is always `true`
+      #
+      # @return [true]
       def fault_tolerant?
         true
       end

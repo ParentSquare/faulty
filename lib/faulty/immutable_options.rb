@@ -10,7 +10,7 @@ module Faulty
       yield self if block_given?
       finalize
       required.each do |key|
-        raise "Missing required attribute #{key}" if self[key].nil?
+        raise ArgumentError, "Missing required attribute #{key}" if self[key].nil?
       end
       freeze
     end

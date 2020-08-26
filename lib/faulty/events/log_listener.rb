@@ -2,11 +2,15 @@
 
 module Faulty
   module Events
+    # A default listener that logs Faulty events
     class LogListener
       attr_reader :logger
 
+      # @param logger A logger similar to stdlib `Logger`. Uses the Rails logger
+      #   by default if available, otherwise it creates a new `Logger` to
+      #   stderr.
       def initialize(logger = nil)
-        logger ||= defined?(Rails) ? Rails.logger : Logger.new($stderr)
+        logger ||= defined?(Rails) ? Rails.logger : ::Logger.new($stderr)
         @logger = logger
       end
 

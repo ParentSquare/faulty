@@ -6,7 +6,15 @@ module Faulty
     #
     # This is for documentation only and is not loaded
     class Interface
-      # @return [Status]
+      # Add a circuit run entry to storage
+      #
+      # The backend may choose to store this in whatever manner it chooses as
+      # long as it can implement the other read methods.
+      #
+      # @param circuit [Circuit] The circuit that ran
+      # @param time [Integer] The unix timestamp for the run
+      # @param success [Boolean] True if the run succeeded
+      # @return [Status] The circuit status after the run is added
       def entry(circuit, time, success)
         raise NotImplementedError
       end
@@ -21,7 +29,7 @@ module Faulty
       # it may always return true, but that could result in duplicate open
       # notifications.
       #
-      # If returning true, this method should also update opened_at to the
+      # If returning true, this method also updates opened_at to the
       # current time.
       #
       # @param circuit [Circuit] The circuit to open
