@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.authors = ['Justin Howard']
   spec.email = ['jmhoward0@gmail.com']
 
-  spec.summary = ''
+  spec.summary = 'Fault-tolerance tools for ruby based on circuit-breakers'
   spec.homepage = 'https://github.com/ParentSquare/faulty'
 
   spec.files = `git ls-files -z`
@@ -33,8 +33,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rspec_junit_formatter', '~> 0.4'
   # 0.81 is the last rubocop version with Ruby 2.3 support
   spec.add_development_dependency 'rubocop', '0.81.0'
-  spec.add_development_dependency 'rubocop-rspec', '1.41.0'
-  spec.add_development_dependency 'simplecov', '~> 0.18'
+  spec.add_development_dependency 'rubocop-rspec', '1.38.1'
+  spec.add_development_dependency 'simplecov', '>= 0.17.1'
   spec.add_development_dependency 'timecop', '>= 0.9'
   spec.add_development_dependency 'yard', '~> 0.9.25'
 end

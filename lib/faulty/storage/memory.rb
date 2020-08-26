@@ -13,7 +13,7 @@ module Faulty
     # circuits that are created. To that end, it's a good idea to avoid
     # dynamically-named circuits with this backend.
     #
-    # For a more robust multi-process implementation, use the {Redis} storage
+    # For a more robust distributed implementation, use the {Redis} storage
     # backend.
     #
     # This can be used as a reference implementation for storage backends that

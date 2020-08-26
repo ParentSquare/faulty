@@ -49,7 +49,7 @@ module Faulty
       self
     end
 
-    # Get the default scope given during {#init}
+    # Get the default scope given during {.init}
     #
     # @return [Scope, nil] The default scope if it is registered
     def default

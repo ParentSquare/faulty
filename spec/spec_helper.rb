@@ -5,7 +5,9 @@ require 'byebug'
 if ENV['COVERAGE']
   require 'simplecov'
   SimpleCov.start do
-    enable_coverage :branch
+    if Gem::Version.new(SimpleCov::VERSION) >= Gem::Version.new('0.18.0')
+      enable_coverage :branch
+    end
     add_filter '/spec/'
     add_filter '/vendor/'
   end

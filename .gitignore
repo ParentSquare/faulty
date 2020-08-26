@@ -1,6 +1,7 @@
 /.bundle/
 /Gemfile.lock
 /vendor/
+/.ruby-version
 
 /coverage/
 /doc/
