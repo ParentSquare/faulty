@@ -259,11 +259,11 @@ configuration option when initializing Faulty or creating a scope. If you're
 using Rails, this is automatically set to the Rails cache.
 
 Once your cache is configured, you can use the `cache` parameter when running
-a circuit:
+a circuit to specify a cache key:
 
 ```ruby
 feed = Faulty.circuit(:rss_feeds)
-  .try_run(cache: "rss_feeds/#{feed}" do
+  .try_run(cache: "rss_feeds/#{feed}") do
     fetch_feed(feed)
   end.or_default([])
 ```
@@ -304,11 +304,67 @@ be returned.
 
 ## Fault Tolerance
 
-TODO
+Faulty backends are fault-tolerant by default. Any `StandardError`s raised by
+the storage or cache backends are captured and suppressed. Failure events for
+these errors are sent to the notifier.
+
+If the storage backend fails, all circuits will default to open. If the cache
+backend fails, all cache queries will miss.
 
 ## Event Handling
 
-TODO
+Faulty uses an event-dispatching model to deliver notifications of internal
+events. The full list of events is available from `Faulty::Events::EVENTS`.
+
+- `cache_failure` -  A cache backend raised an error. Payload: `key`, `action`, `error`
+- `circuit_cache_hit` -  A circuit hit the cache. Payload: `circuit`, `key`
+- `circuit_cache_miss` -  A circuit hit the cache. Payload: `circuit`, `key`
+- `circuit_cache_write` - A circuit wrote to the cache. Payload: `circuit`, `key`
+- `circuit_closed` - A circuit closed. Payload: `circuit`
+- `circuit_failure` - A circuit execution raised an error. Payload: `circuit`,
+  `status`, `error`
+- `circuit_opened` - A circuit execution caused the circuit to open. Payload
+  `circuit`, `error`
+- `circuit_reopened` - A circuit execution cause the circuit to reopen from
+  half-open. Payload: `circuit`, `error`.
+- `circuit_skipped` - A circuit execution was skipped because the circuit is
+  closed. Payload: `circuit`
+- `circuit_success` - A circuit execution was successful. Payload: `circuit`,
+  `status`
+- `storage_failure` - A storage backend raised an error. Payload `circuit`,
+  `action`, `error`
+
+By default events are logged using `Faulty::Events::LogListener`, but that can
+be replaced, or additional listeners can be added.
+
+```ruby
+Faulty.init do |config|
+  # Replace the default listener with a custom callback listener
+  listener = Faulty::Events::CallbackListener.new do |events|
+    events.circuit_opened do |payload|
+      MyNotifier.alert("Circuit #{payload[:circuit].name} opened: #{payload[:error].message}")
+    end
+  end
+  config.listeners = [listener]
+end
+```
+
+You can implement your own listener by following the documentation in
+`Faulty::Events::ListenerInterface`. For example:
+
+```ruby
+class MyFaultyListener
+  def handle(event, payload)
+    MyNotifier.alert(event, payload)
+  end
+end
+```
+
+```ruby
+Faulty.init do |config|
+  config.listeners = [MyFaultyListener.new]
+end
+```
 
 ## Scopes
 
