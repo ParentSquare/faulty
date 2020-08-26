@@ -22,36 +22,18 @@ module Faulty
         end
 
         def status(circuit_options)
-          stats = current_stats(circuit_options)
-          Faulty::Status.new(
-            state: state.value,
-            lock: lock,
-            opened_at: opened_at.value,
-            failure_rate: stats[:failure_rate],
-            sample_size: stats[:sample_size],
-            cool_down: circuit_options.cool_down,
-            sample_threshold: circuit_options.sample_threshold,
-            rate_threshold: circuit_options.rate_threshold
-          )
-        end
-
-        def current_stats(circuit_options)
-          stats = { sample_size: 0, failures: 0 }
+          status = nil
           runs.borrow do |locked_runs|
-            locked_runs.each do |(time, success)|
-              next unless time > Faulty.current_time - circuit_options.evaluation_window
-
-              stats[:sample_size] += 1
-              stats[:failures] += 1 unless success
-            end
+            status = Faulty::Status.from_entries(
+              locked_runs,
+              state: state.value,
+              lock: lock,
+              opened_at: opened_at.value,
+              options: circuit_options
+            )
           end
 
-          stats[:failure_rate] = if stats[:sample_size].zero?
-            0.0
-          else
-            stats[:failures].to_f / stats[:sample_size]
-          end
-          stats
+          status
         end
       end
 

@@ -7,9 +7,7 @@ module Faulty
     :opened_at,
     :failure_rate,
     :sample_size,
-    :cool_down,
-    :sample_threshold,
-    :rate_threshold,
+    :options,
     :stub
   ) do
     include ImmutableOptions
@@ -24,8 +22,24 @@ module Faulty
       closed
     ].freeze
 
+    def self.from_entries(entries, **attrs)
+      failures = 0
+      sample_size = 0
+      entries.each do |(time, success)|
+        next unless time > Faulty.current_time - attrs[:options].evaluation_window
+
+        sample_size += 1
+        failures += 1 unless success
+      end
+
+      new(attrs.merge(
+        sample_size: sample_size,
+        failure_rate: sample_size.zero? ? 0.0 : failures.to_f / sample_size
+      ))
+    end
+
     def open?
-      state == :open && opened_at + cool_down > Faulty.current_time
+      state == :open && opened_at + options.cool_down > Faulty.current_time
     end
 
     def closed?
@@ -33,7 +47,7 @@ module Faulty
     end
 
     def half_open?
-      state == :open && opened_at + cool_down <= Faulty.current_time
+      state == :open && opened_at + options.cool_down <= Faulty.current_time
     end
 
     def locked_open?
@@ -51,9 +65,9 @@ module Faulty
     end
 
     def fails_threshold?
-      return false if sample_size < sample_threshold
+      return false if sample_size < options.sample_threshold
 
-      failure_rate >= rate_threshold
+      failure_rate >= options.rate_threshold
     end
 
     private
@@ -66,7 +80,7 @@ module Faulty
     end
 
     def required
-      %i[state failure_rate sample_size cool_down sample_threshold rate_threshold stub]
+      %i[state failure_rate sample_size options stub]
     end
 
     def defaults

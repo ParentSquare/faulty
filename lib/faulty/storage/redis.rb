@@ -32,7 +32,7 @@ module Faulty
       def entry(circuit, time, success)
         key = entries_key(circuit)
         pipe do |r|
-          r.lpush(key, "#{time.to_i}#{ENTRY_SEPARATOR}#{success ? 1 : 0}")
+          r.lpush(key, "#{time}#{ENTRY_SEPARATOR}#{success ? 1 : 0}")
           r.ltrim(key, 0, options.max_sample_size - 1)
           r.expire(key, options.sample_ttl) if options.sample_ttl
         end
@@ -54,7 +54,7 @@ module Faulty
       def reopen(circuit, opened_at, previous_opened_at)
         reopened = nil
         redis do |r|
-          reopened = compare_and_set(r, opened_at_key(circuit), [previous_opened_at], opened_at)
+          reopened = compare_and_set(r, opened_at_key(circuit), [previous_opened_at.to_s], opened_at)
         end
         reopened
       end
@@ -97,20 +97,18 @@ module Faulty
           futures[:entries] = r.lrange(entries_key(circuit), 0, -1)
         end
 
-        stats = compute_stats(circuit, map_entries(futures[:entries].value))
-        Faulty::Status.new(stats.merge(
+        Faulty::Status.from_entries(
+          map_entries(futures[:entries].value),
           state: futures[:state].value&.to_sym || :closed,
           lock: futures[:lock].value&.to_sym,
-          opened_at: futures[:opened_at].value ? Time.at(futures[:opened_at].value.to_i).utc : nil,
-          cool_down: circuit.options.cool_down,
-          sample_threshold: circuit.options.sample_threshold,
-          rate_threshold: circuit.options.rate_threshold
-        ))
+          opened_at: futures[:opened_at].value ? futures[:opened_at].value.to_i : nil,
+          options: circuit.options
+        )
       end
 
       def history(circuit)
         entries = redis { |r| r.lrange(entries_key(circuit), 0, -1) }
-        map_entries(entries)
+        map_entries(entries).reverse
       end
 
       def fault_tolerant?
@@ -166,21 +164,8 @@ module Faulty
       def map_entries(raw_entries)
         raw_entries.map do |e|
           time, state = e.split(ENTRY_SEPARATOR)
-          [Time.at(time.to_i).utc, state == '1']
+          [time.to_i, state == '1']
         end
-      end
-
-      def compute_stats(circuit, entries)
-        stats = { sample_size: 0 }
-        failures = 0
-        entries.each do |(time, success)|
-          next unless time > Faulty.current_time - circuit.options.evaluation_window
-
-          stats[:sample_size] += 1
-          failures += 1 unless success
-        end
-        stats[:failure_rate] = stats[:sample_size].zero? ? 0.0 : failures.to_f / stats[:sample_size]
-        stats
       end
     end
   end

@@ -116,6 +116,9 @@ module Faulty
       # No concurrency gurantees are provided for getting status. It's possible
       # that status may represent a circuit in the middle of modification.
       #
+      # A storage backend may choose not to implement this method and instead
+      # return an empty array.
+      #
       # Each item in the history array is an array of two items (a tuple) of
       # `[run_time, succeeded]`, where `run_time` is a unix timestamp, and
       # `succeeded` is a boolean, true if the run succeeded.

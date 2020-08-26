@@ -74,6 +74,8 @@ module Faulty
     # @return [Scope, nil] The previously-registered scope of that name if
     #   it already existed, otherwise nil.
     def register(name, scope)
+      raise 'Faulty is not initialized' unless @scopes
+
       @scopes.put_if_absent(name, scope)
     end
 

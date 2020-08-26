@@ -406,6 +406,9 @@ module Faulty
       "#{key}#{CACHE_REFRESH_SUFFIX}"
     end
 
+    # Get a random number from 0.0 to 1.0 for use with cache jitter
+    #
+    # @return [Float] A random number from 0.0 to 1.0
     def rand
       SecureRandom.random_number
     end
