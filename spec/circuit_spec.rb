@@ -200,4 +200,16 @@ RSpec.describe Faulty::Circuit do
       circuit.run { raise 'fail' }
     end.to raise_error(RuntimeError, 'fail')
   end
+
+  it 'applies jitter to cache refresh' do
+    allow(circuit).to receive(:rand).and_return(1)
+
+    circuit.run(cache: 'cache_test') { 'ok' }
+    Timecop.freeze(Time.now + 1000)
+    result = circuit.run(cache: 'cache_test') { 'foo' }
+    expect(result).to eq('ok')
+    Timecop.freeze(Time.now + 200)
+    result = circuit.run(cache: 'cache_test') { 'new' }
+    expect(result).to eq('new')
+  end
 end

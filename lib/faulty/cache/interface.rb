@@ -12,6 +12,7 @@ module Faulty
       # @raise If the cache backend encounters a failure
       # @return [Object, nil] The object if present, otherwise nil
       def read(key)
+        raise NotImplementedError
       end
 
       # Write a value to the cache
@@ -26,9 +27,17 @@ module Faulty
       # @raise If the cache backend encounters a failure
       # @return [void]
       def write(key, value, expires_in: nil)
+        raise NotImplementedError
       end
 
+      # Can this cache backend raise an error?
+      #
+      # If the cache backend returns false from this method, it will be wrapped
+      # in a {FaultTolerantProxy}, otherwise it will be used as-is.
+      #
+      # @return [Boolean] True if this cache backend is fault tolerant
       def fault_tolerant?
+        raise NotImplementedError
       end
     end
   end

@@ -36,6 +36,13 @@ module Faulty
         false
       end
 
+      def reopen(circuit)
+        @storage.reopen(circuit)
+      rescue StandardError => e
+        options.notifier.notify(:storage_failure, circuit: circuit, action: :reopen, error: e)
+        false
+      end
+
       def close(circuit)
         @storage.close(circuit)
       rescue StandardError => e

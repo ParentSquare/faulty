@@ -47,6 +47,9 @@ RSpec/NamedSubject:
 RSpec/MultipleExpectations:
   Enabled: false
 
+RSpec/SubjectStub:
+  Enabled: false
+
 Metrics/AbcSize:
   Max: 35
 

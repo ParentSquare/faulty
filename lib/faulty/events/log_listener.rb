@@ -48,6 +48,10 @@ module Faulty
         log(:error, 'Circuit opened', payload[:circuit].name, error: payload[:error].message)
       end
 
+      def circuit_reopened(payload)
+        log(:error, 'Circuit reopened', payload[:circuit].name, error: payload[:error].message)
+      end
+
       def circuit_closed(payload)
         log(:info, 'Circuit closed', payload[:circuit].name)
       end

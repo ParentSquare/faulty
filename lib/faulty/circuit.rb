@@ -44,7 +44,7 @@ module Faulty
     #     subtract from `cache_refreshes_after` when determining whether to
     #     refresh the cache.  A non-zero value helps reduce a "thundering herd"
     #     cache refresh in most scenarios. Set to `0` to disable jitter.
-    #     Default `0.8 * cache_refreshes_after`.
+    #     Default `0.2 * cache_refreshes_after`.
     # @!attribute [r] cool_down
     #   @return [Integer] The number of seconds the circuit will
     #     stay open after it is tripped. Default 300.
@@ -125,7 +125,7 @@ module Faulty
         self.exclude = [exclude] if exclude && !exclude.is_a?(Array)
 
         unless cache_refreshes_after.nil?
-          self.cache_refresh_jitter = 0.8 * cache_refreshes_after
+          self.cache_refresh_jitter = 0.2 * cache_refreshes_after
         end
       end
     end
@@ -306,8 +306,13 @@ module Faulty
       status = storage.entry(self, Faulty.current_time, false)
       options.notifier.notify(:circuit_failure, circuit: self, status: status, error: error)
 
-      opened = false
-      opened = open!(error) if should_open?(status)
+      opened = if status.half_open?
+        reopen!(error, status.opened_at)
+      elsif status.fails_threshold?
+        open!(error)
+      else
+        false
+      end
 
       opened
     end
@@ -318,9 +323,16 @@ module Faulty
 
     # @return [Boolean] True if the circuit transitioned from closed to open
     def open!(error)
-      opened = storage.open(self)
+      opened = storage.open(self, Faulty.current_time)
       options.notifier.notify(:circuit_opened, circuit: self, error: error) if opened
       opened
+    end
+
+    # @return [Boolean] True if the circuit was reopened
+    def reopen!(error, previous_opened_at)
+      reopened = storage.reopen(self, Faulty.current_time, previous_opened_at)
+      options.notifier.notify(:circuit_reopened, circuit: self, error: error) if reopened
+      reopened
     end
 
     # @return [Boolean] True if the circuit transitioned from half-open to closed
@@ -328,16 +340,6 @@ module Faulty
       closed = storage.close(self)
       options.notifier.notify(:circuit_closed, circuit: self) if closed
       closed
-    end
-
-    # Test whether we should open the circuit after a failed run
-    #
-    # @return [Boolean] True if we should open the circuit from closed
-    def should_open?(status)
-      return true if status.half_open?
-      return true if status.fails_threshold?
-
-      false
     end
 
     # Test whether we should close after a successful run
@@ -385,22 +387,27 @@ module Faulty
     # @return [Boolean] true if the cache should be refreshed
     def cache_should_refresh?(key)
       time = options.cache.read(cache_refresh_key(key.to_s)).to_i
-      time < Faulty.current_time
+      time + (rand * 2 - 1) * options.cache_refresh_jitter < Faulty.current_time
     end
 
     # Get the next time to refresh the cache when writing to it
     #
     # @return [Integer] The timestamp to refresh at
     def next_refresh_time
-      (
-        Faulty.current_time +
-        options.cache_refreshes_after +
-        (SecureRandom.random_number * 2 - 1) * options.cache_refresh_jitter
-      ).floor
+      (Faulty.current_time + options.cache_refreshes_after).floor
     end
 
+    # Get the corresponding cache refresh key for a given cache key
+    #
+    # We use this to force a cache entry to refresh before it has expired
+    #
+    # @return [String] The cache refresh key
     def cache_refresh_key(key)
       "#{key}#{CACHE_REFRESH_SUFFIX}"
+    end
+
+    def rand
+      SecureRandom.random_number
     end
 
     # Alias to the storage engine from options

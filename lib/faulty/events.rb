@@ -11,6 +11,7 @@ module Faulty
       circuit_closed
       circuit_failure
       circuit_opened
+      circuit_reopened
       circuit_skipped
       circuit_success
       storage_failure

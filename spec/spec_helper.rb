@@ -5,6 +5,7 @@ require 'byebug'
 if ENV['COVERAGE']
   require 'simplecov'
   SimpleCov.start do
+    enable_coverage :branch
     add_filter '/spec/'
     add_filter '/vendor/'
   end

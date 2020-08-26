@@ -17,7 +17,7 @@ module Faulty
         def initialize
           self.state = Concurrent::Atom.new(:closed)
           self.runs = Concurrent::MVar.new([], dup_on_deref: true)
-          self.opened_at = nil
+          self.opened_at = Concurrent::Atom.new(nil)
           self.lock = nil
         end
 
@@ -26,7 +26,7 @@ module Faulty
           Faulty::Status.new(
             state: state.value,
             lock: lock,
-            opened_at: opened_at,
+            opened_at: opened_at.value,
             failure_rate: stats[:failure_rate],
             sample_size: stats[:sample_size],
             cool_down: circuit_options.cool_down,
@@ -71,11 +71,17 @@ module Faulty
       end
 
       # @return [Boolean] True if the circuit transitioned from closed to open
-      def open(circuit)
+      def open(circuit, opened_at)
         memory = fetch(circuit)
         opened = memory.state.compare_and_set(:closed, :open)
-        memory.opened_at = Faulty.current_time
+        memory.opened_at.reset(opened_at) if opened
         opened
+      end
+
+      # @return [void]
+      def reopen(circuit, opened_at, previous_opened_at)
+        memory = fetch(circuit)
+        memory.opened_at.compare_and_set(previous_opened_at, opened_at)
       end
 
       # @return [Boolean] True if the circuit transitioned from open to closed

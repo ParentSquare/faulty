@@ -41,13 +41,22 @@ module Faulty
       end
 
       # @return [Boolean] True if the circuit transitioned from closed to open
-      def open(circuit)
+      def open(circuit, opened_at)
         opened = nil
         redis do |r|
           opened = compare_and_set(r, state_key(circuit), ['closed', nil], 'open')
-          r.set(opened_at_key(circuit), Faulty.current_time.to_i)
+          r.set(opened_at_key(circuit), opened_at) if opened
         end
         opened
+      end
+
+      # @return [Boolean] True if the circuit transitioned from closed to open
+      def reopen(circuit, opened_at, previous_opened_at)
+        reopened = nil
+        redis do |r|
+          reopened = compare_and_set(r, opened_at_key(circuit), [previous_opened_at], opened_at)
+        end
+        reopened
       end
 
       # @return [Boolean] True if the circuit transitioned from open to closed
