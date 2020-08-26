@@ -19,11 +19,21 @@ gem 'faulty'
 Or install it manually:
 
 ```sh
-gem 'faulty'
+gem install faulty
 ```
 
 During your app startup, call `Faulty.init`. For Rails, you would do this in
 `config/initializers/faulty.rb`.
+
+## API Docs
+
+API docs can be read inline in the source or generated with Ruby `yard`:
+
+```sh
+bin/yardoc
+```
+
+Then open `doc/index.html` in your browser.
 
 ## Setup
 
@@ -48,9 +58,98 @@ end
 ```
 
 For a full list of configuration options, see the
-[Configuration](#configuration) section.
+[Global Configuration](#global-configuration) section.
 
 ## Basic Usage
+
+To create a circuit, call `Faulty.circuit`. This can be done as you use the
+circuit, or you can set it up beforehand. Any options passed to the `circuit`
+method are synchronized across threads and saved as long as the process is alive.
+
+```ruby
+circuit1 = Faulty.circuit(:api, cache_refreshes_after: 1800)
+
+# The options from above are also used when called here
+circuit2 = Faulty.circuit(:api)
+circuit2.options.cache_refreshes_after == 1800 # => true
+
+# The same circuit is returned on each consecutive call
+circuit1.equal?(circuit2) # => true
+```
+
+To run a circuit, call the `run` method:
+
+```ruby
+Faulty.circuit(:api).run do
+  api.users
+end
+```
+
+See [Principals of Operation](#principals-of-operation) for more details about
+how Faulty handles circuit failures.
+
+If the `run` block above fails, a `Faulty::CircuitError` will be raised. It is
+up to your application to handle that error however necessary or crash. Often
+though, you don't want to crash your application when a circuit fails, but
+instead apply a fallback or default behavior. For this, Faulty provides the
+`try_run` method:
+
+```ruby
+result = Faulty.circuit(:api).try_run do
+  api.users
+end
+
+users = if result.ok?
+  result.get
+else
+  []
+end
+```
+
+The `try_run` method returns a result type instead of raising errors. See the
+API docs for `Result` for more information. Here we use it to check whether the
+result is `ok?` (not an error). If it is we set the users variable, otherwise we
+set a default of an empty array. This pattern is so common, that `Result` also
+implements a helper method `or_default` to do the same thing:
+
+```ruby
+users = Faulty.circuit(:api).try_run do
+  api.users
+end.or_default([])
+```
+
+## Principals of Operation
+
+Faulty implements a version of circuit breakers inspired by
+[Martin Fowler's post][martin fowler] on the subject. A few notable features of
+Faulty's implementation are:
+
+- Rate-based failure thresholds
+- Integrated caching inspired by Netflix's [Hystrix][hystrix] with automatic
+  cache jitter and error fallback.
+- Event-based monitoring
+
+Following the principals of the circuit-breaker pattern, the block given to
+`run` or `try_run` will always be executed as long as long as it never raises an
+error. If the block _does_ raise an error, then the circuit keeps track of the
+number of runs and the failure rate.
+
+Once both thresholds are breached, the circuit is "closed". Once closed, the
+circuit starts the cool-down period. Any executions within that cool-down are
+skipped, and a `Faulty::OpenCircuitError` will be raised.
+
+After the cool-down has elapsed, the circuit enters the half-open state. In this
+state, Faulty allows a single execution of the block as a test run. If the test
+run succeeds, the circuit is fully opened and the circuit state is reset. If the
+test run fails, the circuit is closed and the cool-down is reset.
+
+Each time the circuit changes state or executes the block, events are raised
+that are sent to the Faulty event notifier. The notifier should be used to track
+circuit failure rates, open circuits, etc.
+
+In addition to the classic circuit breaker design, Faulty implements caching
+that is integrated with the circuit state. See [Caching](#caching) for more
+detail.
 
 ## Global Configuration
 
@@ -89,26 +188,13 @@ hash. For example, `Faulty.init` could be called like this:
 Faulty.init(cache: Faulty::Cache::Null.new)
 ```
 
-## Faulty's Circuit Breaker Algorithm
-
-Faulty implements a version of circuit breakers inspired by
-[Martin Fowler's post][martin fowler] on the subject. A few notable features of
-Faulty's implementation are:
-
-- Rate-based failure thresholds
-- Integrated caching inspired by Netflix's [Hystrix][hystrix] with automatic
-  cache jitter and error fallback.
-- Event-based monitoring
-
-TODO: Full algorithm
-
 ## Circuit Options
 
 A circuit can be created with the following configuration options. Those options
-are only set once, and will persist in-memory until the process exits. If
-you're using [scopes](#scopes), the options are retained within the context of
-each scope. All options given after the first call to `Faulty.circuit` (or
-`Scope.circuit` are ignored.
+are only set once, synchronized across threads, and will persist in-memory until
+the process exits. If you're using [scopes](#scopes), the options are retained
+within the context of each scope. All options given after the first call to
+`Faulty.circuit` (or `Scope.circuit` are ignored.
 
 This is because the circuit objects themselves are internally memoized, and are
 read-only once created.
@@ -212,8 +298,9 @@ If the circuit is open and the cache is hit, then Faulty will always return the
 cached value.
 
 If the cache query results in a miss, then faulty operates as normal. In the
-code above, the block will be executed. If the block succeeds, the cache is
-refreshed. If the block fails, the default of `[]` will be returned.
+code above, if the circuit is closed, the block will be executed. If the block
+succeeds, the cache is refreshed. If the block fails, the default of `[]` will
+be returned.
 
 ## Fault Tolerance
 

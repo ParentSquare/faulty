@@ -134,6 +134,10 @@ module Faulty
     # @param options [Hash] Attributes for {Options}
     # @yield [Options] For setting options in a block
     def initialize(name, **options, &block)
+      unless name.is_a?(String) || name.is_a?(Symbol)
+        raise ArgumentError, 'name must be a string or symbol'
+      end
+
       @name = name
       @options = Options.new(options, &block)
     end
