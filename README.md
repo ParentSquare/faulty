@@ -23,7 +23,7 @@ gem install faulty
 ```
 
 During your app startup, call `Faulty.init`. For Rails, you would do this in
-`config/initializers/faulty.rb`.
+`config/initializers/faulty.rb`. See [Setup](#setup) for details.
 
 ## API Docs
 
@@ -85,8 +85,8 @@ Faulty.circuit(:api).run do
 end
 ```
 
-See [Principals of Operation](#principals-of-operation) for more details about
-how Faulty handles circuit failures.
+See [How it Works](#how-it-works) for more details about how Faulty handles
+circuit failures.
 
 If the `run` block above fails, a `Faulty::CircuitError` will be raised. It is
 up to your application to handle that error however necessary or crash. Often
@@ -118,7 +118,7 @@ users = Faulty.circuit(:api).try_run do
 end.or_default([])
 ```
 
-## Principals of Operation
+## How it Works
 
 Faulty implements a version of circuit breakers inspired by
 [Martin Fowler's post][martin fowler] on the subject. A few notable features of
@@ -134,7 +134,7 @@ Following the principals of the circuit-breaker pattern, the block given to
 error. If the block _does_ raise an error, then the circuit keeps track of the
 number of runs and the failure rate.
 
-Once both thresholds are breached, the circuit is "closed". Once closed, the
+Once both thresholds are breached, the circuit is opened. Once open, the
 circuit starts the cool-down period. Any executions within that cool-down are
 skipped, and a `Faulty::OpenCircuitError` will be raised.
 
@@ -365,6 +365,10 @@ Faulty.init do |config|
   config.listeners = [MyFaultyListener.new]
 end
 ```
+
+## Configuring the Storage Backend
+
+TODO
 
 ## Scopes
 
