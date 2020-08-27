@@ -212,33 +212,37 @@ module Faulty
       # Generate a key from its parts
       #
       # @return [String] The key
-      def key(circuit, *parts)
-        [options.key_prefix, circuit.name, *parts].join(options.key_separator)
+      def key(*parts)
+        [options.key_prefix, *parts].join(options.key_separator)
+      end
+
+      def ckey(circuit, *parts)
+        key('circuit', circuit.name, *parts)
       end
 
       # @return [String] The key for circuit state
       def state_key(circuit)
-        key(circuit, 'state')
+        ckey(circuit, 'state')
       end
 
       # @return [String] The key for circuit run history entries
       def entries_key(circuit)
-        key(circuit, 'entries')
+        ckey(circuit, 'entries')
       end
 
       # @return [String] The key for circuit locks
       def lock_key(circuit)
-        key(circuit, 'lock')
+        ckey(circuit, 'lock')
       end
 
       # @return [String] The key for circuit opened_at
       def opened_at_key(circuit)
-        key(circuit, 'opened_at')
+        ckey(circuit, 'opened_at')
       end
 
       # Get the current key to add circuit names to
       def list_key
-        [options.key_prefix, 'list', current_list_block].join(options.key_separator)
+        key('list', current_list_block)
       end
 
       # Get all active circuit list keys
@@ -263,7 +267,7 @@ module Faulty
         num_blocks = (options.circuit_ttl.to_f / options.list_granularity).floor + 1
         start_block = current_list_block - num_blocks + 1
         num_blocks.times.map do |i|
-          [options.key_prefix, 'list', start_block + i].join(options.key_separator)
+          key('list', start_block + i)
         end
       end
 
