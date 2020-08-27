@@ -25,12 +25,22 @@ module Faulty
       # @!attribute [r] sample_ttl
       #   @return [Integer] The maximum number of seconds to store a
       #     circuit run history entry. Default `100`.
+      # @!attribute [r] circuit_ttl
+      #   @return [Integer] The maximum number of seconds to keep a circuit.
+      #     A value of `nil` disables circuit expiration.
+      #     Default `604_800` (1 week).
+      # @!attribute [r] list_granularity
+      #   @return [Integer] The number of seconds after which a new set is
+      #     created to store circuit names. The old set is kept until
+      #     circuit_ttl expires. Default `3600` (1 hour).
       Options = Struct.new(
         :client,
         :key_prefix,
         :key_separator,
         :max_sample_size,
-        :sample_ttl
+        :sample_ttl,
+        :circuit_ttl,
+        :list_granularity
       ) do
         include ImmutableOptions
 
@@ -41,8 +51,14 @@ module Faulty
             key_prefix: 'faulty',
             key_separator: ':',
             max_sample_size: 100,
-            sample_ttl: 1800
+            sample_ttl: 1800,
+            circuit_ttl: 604_800,
+            list_granularity: 3600
           }
+        end
+
+        def required
+          %i[list_granularity]
         end
 
         def finalize
@@ -65,6 +81,7 @@ module Faulty
         key = entries_key(circuit)
         pipe do |r|
           r.sadd(list_key, circuit.name)
+          r.expire(list_key, options.circuit_ttl + options.list_granularity) if options.circuit_ttl
           r.lpush(key, "#{time}#{ENTRY_SEPARATOR}#{success ? 1 : 0}")
           r.ltrim(key, 0, options.max_sample_size - 1)
           r.expire(key, options.sample_ttl) if options.sample_ttl
@@ -79,12 +96,11 @@ module Faulty
       # @param (see Interface#open)
       # @return (see Interface#open)
       def open(circuit, opened_at)
-        opened = nil
         redis do |r|
           opened = compare_and_set(r, state_key(circuit), ['closed', nil], 'open')
-          r.set(opened_at_key(circuit), opened_at) if opened
+          r.set(opened_at_key(circuit), opened_at, ex: options.circuit_ttl) if opened
+          opened
         end
-        opened
       end
 
       # Mark a circuit as reopened
@@ -93,11 +109,9 @@ module Faulty
       # @param (see Interface#reopen)
       # @return (see Interface#reopen)
       def reopen(circuit, opened_at, previous_opened_at)
-        reopened = nil
         redis do |r|
-          reopened = compare_and_set(r, opened_at_key(circuit), [previous_opened_at.to_s], opened_at)
+          compare_and_set(r, opened_at_key(circuit), [previous_opened_at.to_s], opened_at)
         end
-        reopened
       end
 
       # Mark a circuit as closed
@@ -106,15 +120,16 @@ module Faulty
       # @param (see Interface#close)
       # @return (see Interface#close)
       def close(circuit)
-        closed = nil
         redis do |r|
           closed = compare_and_set(r, state_key(circuit), ['open'], 'closed')
           r.del(entries_key(circuit)) if closed
+          closed
         end
-        closed
       end
 
       # Lock a circuit open or closed
+      #
+      # The circuit_ttl does not apply to locks
       #
       # @see Interface#lock
       # @param (see Interface#lock)
@@ -144,7 +159,7 @@ module Faulty
             opened_at_key(circuit),
             lock_key(circuit)
           )
-          r.set(state_key(circuit), 'closed')
+          r.set(state_key(circuit), 'closed', ex: options.circuit_ttl)
         end
       end
 
@@ -182,7 +197,7 @@ module Faulty
       end
 
       def list
-        redis { |r| r.smembers(list_key) }
+        redis { |r| r.sunion(*all_list_keys) }
       end
 
       # Redis storage is not fault-tolerant
@@ -221,8 +236,42 @@ module Faulty
         key(circuit, 'opened_at')
       end
 
+      # Get the current key to add circuit names to
       def list_key
-        [options.key_prefix, 'list'].join(options.key_separator)
+        [options.key_prefix, 'list', current_list_block].join(options.key_separator)
+      end
+
+      # Get all active circuit list keys
+      #
+      # We use a rolling list of redis sets to store circuit names. This way we
+      # can maintain this index, while still using Redis to expire old circuits.
+      # Whenever we add a circuit to the list, we add it to the current set. A
+      # new set is created every `options.list_granularity` seconds.
+      #
+      # When reading the list, we union all sets together, which gets us the
+      # full list.
+      #
+      # Each set has its own expiration, so that the oldest sets will
+      # automatically be deleted from Redis after `options.circuit_ttl`.
+      #
+      # It is possible for a single circuit name to be a part of many of these
+      # sets. This is the space trade-off we make in exchange for automatic
+      # expiration.
+      #
+      # @return [Array<String>] An array of redis keys for circuit name sets
+      def all_list_keys
+        num_blocks = (options.circuit_ttl.to_f / options.list_granularity).floor + 1
+        start_block = current_list_block - num_blocks + 1
+        num_blocks.times.map do |i|
+          [options.key_prefix, 'list', start_block + i].join(options.key_separator)
+        end
+      end
+
+      # Get the block number for the current list set
+      #
+      # @return [Integer] The current block number
+      def current_list_block
+        (Faulty.current_time.to_f / options.list_granularity).floor
       end
 
       # Set a value in Redis only if it matches a list of current values

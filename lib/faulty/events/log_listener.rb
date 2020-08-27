@@ -74,7 +74,7 @@ module Faulty
       def storage_failure(payload)
         log(
           :error, 'Storage failure', payload[:action],
-          circuit: payload[:circuit].name,
+          circuit: payload[:circuit]&.name,
           error: payload[:error].message
         )
       end

@@ -149,7 +149,7 @@ module Faulty
       def list
         @storage.list
       rescue StandardError => e
-        options.notifier.notify(:storage_failure, circuit: circuit, action: :list, error: e)
+        options.notifier.notify(:storage_failure, action: :list, error: e)
         []
       end
 

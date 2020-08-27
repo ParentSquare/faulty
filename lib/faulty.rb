@@ -41,6 +41,9 @@ module Faulty
       @scopes = Concurrent::Map.new
       register(scope_name, Scope.new(**config, &block)) unless scope_name.nil?
       self
+    rescue StandardError
+      @scopes = nil
+      raise
     end
 
     # Get the default scope given during {.init}
