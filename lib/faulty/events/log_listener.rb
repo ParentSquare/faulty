@@ -18,7 +18,7 @@ module Faulty
       def handle(event, payload)
         return unless EVENTS.include?(event)
 
-        send(event, payload) if respond_to?(event)
+        send(event, payload) if respond_to?(event, true)
       end
 
       private
