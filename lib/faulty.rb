@@ -50,6 +50,7 @@ module Faulty
     #
     # @return [Scope, nil] The default scope if it is registered
     def default
+      raise UninitializedError unless @scopes
       raise MissingDefaultScopeError unless @default_scope
 
       self[@default_scope]
