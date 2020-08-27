@@ -1,6 +1,10 @@
 #!/usr/bin/env sh
 
-tag="$(git describe --abbrev=0)"
+set -e
+
+tag="$(git describe --abbrev=0 2>/dev/null || echo)"
 tag="${tag#v}"
-gt=$(ruby -r ./lib/faulty/version -e "puts Faulty.version >= Gem::Version.new('${tag}')")
-test "$gt" = true
+[ "$tag" = '' ] && exit 0
+
+tag_gt_version=$(ruby -r ./lib/faulty/version -e "puts Faulty.version >= Gem::Version.new('${tag}')")
+test "$tag_gt_version" = true

@@ -34,7 +34,9 @@ Gem::Specification.new do |spec|
   # 0.81 is the last rubocop version with Ruby 2.3 support
   spec.add_development_dependency 'rubocop', '0.81.0'
   spec.add_development_dependency 'rubocop-rspec', '1.38.1'
-  spec.add_development_dependency 'simplecov', '>= 0.17.1'
+  # For now, code climate doesn't support simplecov 0.18
+  # https://github.com/codeclimate/test-reporter/issues/413
+  spec.add_development_dependency 'simplecov', '>= 0.17.1', '< 0.18'
   spec.add_development_dependency 'timecop', '>= 0.9'
   spec.add_development_dependency 'yard', '~> 0.9.25'
 end

@@ -1,5 +1,11 @@
 # Faulty
 
+[![Gem Version](https://badge.fury.io/rb/faulty.svg)](https://badge.fury.io/rb/faulty)
+[![Build Status](https://travis-ci.org/ParentSquare/faulty.svg?branch=master)](https://travis-ci.org/ParentSquare/faulty)
+[![Code Climate](https://codeclimate.com/github/ParentSquare/faulty/badges/gpa.svg)](https://codeclimate.com/github/ParentSquare/faulty)
+[![Test Coverage](https://codeclimate.com/github/ParentSquare/faulty/badges/coverage.svg)](https://codeclimate.com/github/ParentSquare/faulty)
+[![Inline docs](http://inch-ci.org/github/ParentSquare/faulty.svg?branch=master)](http://inch-ci.org/github/ParentSquare/faulty)
+
 Fault-tolerance tools for ruby based on [circuit-breakers][martin fowler].
 
 ```ruby
@@ -27,7 +33,8 @@ During your app startup, call `Faulty.init`. For Rails, you would do this in
 
 ## API Docs
 
-API docs can be read inline in the source or generated with Ruby `yard`:
+API docs can be read [on rubydoc.info][api docs], inline in the source code, or
+you can generate them yourself with Ruby `yard`:
 
 ```sh
 bin/yardoc
@@ -400,5 +407,6 @@ but there are and have been many other options:
 - [breaker](https://github.com/ahawkins/breaker) (unmaintained)
 - [circuit_b](https://github.com/alg/circuit_b) (unmaintained)
 
+[api docs]: https://www.rubydoc.info/github/ParentSquare/faulty/master
 [martin fowler]: https://www.martinfowler.com/bliki/CircuitBreaker.html
 [hystrix]: https://github.com/Netflix/Hystrix/wiki/How-it-Works
