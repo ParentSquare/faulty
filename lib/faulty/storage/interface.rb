@@ -137,6 +137,16 @@ module Faulty
         raise NotImplementedError
       end
 
+      # Get a list of all circuit names
+      #
+      # If the storage backend does not support listing circuits, this may
+      # return an empty array.
+      #
+      # @return [Array<String>]
+      def list
+        raise NotImplementedError
+      end
+
       # Can this storage backend raise an error?
       #
       # If the storage backend returns false from this method, it will be wrapped

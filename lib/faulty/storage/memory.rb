@@ -168,6 +168,13 @@ module Faulty
         fetch(circuit).runs.value
       end
 
+      # Get a list of circuit names
+      #
+      # @return [Array<String>] The circuit names
+      def list
+        @circuits.keys
+      end
+
       # Memory storage is fault-tolerant by default
       #
       # @return [true]

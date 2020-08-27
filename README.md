@@ -416,6 +416,22 @@ Faulty.init do |config|
 end
 ```
 
+### Listing Circuits
+
+For monitoring or debugging, you may need to retrieve a list of all circuit
+names. This is possible with `Faulty.list_circuits` (or the equivalent method on
+your [scope](#scopes)).
+
+You can get a list of all circuit statuses by mapping those names to their
+status objects. Be careful though, since this could cause performance issues for
+very large numbers of circuits.
+
+```ruby
+statuses = Faulty.list_circuits.map do |name|
+  Faulty.circuit(name).status
+end
+```
+
 ## Scopes
 
 It is possible to have multiple configurations of Faulty running within the same

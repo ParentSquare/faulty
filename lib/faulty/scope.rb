@@ -84,15 +84,23 @@ module Faulty
     # a new circuit will be created. If an existing circuit is returned, then
     # the {options} param and block are ignored.
     #
-    # @param name [Symbol, String] The name of the circuit
+    # @param name [String] The name of the circuit
     # @param options [Hash] Attributes for {Circuit::Options}
     # @yield [Circuit::Options] For setting options in a block
     # @return [Circuit] The new circuit or the existing circuit if it already exists
     def circuit(name, **options, &block)
+      name = name.to_s
       options = options.merge(circuit_options)
       @circuits.compute_if_absent(name) do
         Circuit.new(name, **options, &block)
       end
+    end
+
+    # Get a list of all circuit names
+    #
+    # @return [Array<String>] The circuit names
+    def list_circuits
+      options.storage.list
     end
 
     private

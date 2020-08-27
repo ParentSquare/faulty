@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 RSpec.describe Faulty::Scope do
-  it 'does not combine string and symbol names for circuits' do
+  it 'converts symbol names to strings' do
     scope = described_class.new
-    expect(scope.circuit(:test)).not_to eq(scope.circuit('test'))
+    expect(scope.circuit(:test)).to eq(scope.circuit('test'))
   end
 end

@@ -94,6 +94,13 @@ module Faulty
       default.circuit(name, **config, &block)
     end
 
+    # Get a list of all circuit names for the default scope
+    #
+    # @return [Array<String>] The circuit names
+    def list_circuits
+      options.storage.list
+    end
+
     # The current time
     #
     # Used by Faulty wherever the current time is needed. Can be overridden

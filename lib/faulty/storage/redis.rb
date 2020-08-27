@@ -3,7 +3,6 @@
 module Faulty
   module Storage
     class Redis # rubocop:disable Metrics/ClassLength
-
       # Separates the time/status for history entry strings
       ENTRY_SEPARATOR = ':'
 
@@ -65,6 +64,7 @@ module Faulty
       def entry(circuit, time, success)
         key = entries_key(circuit)
         pipe do |r|
+          r.sadd(list_key, circuit.name)
           r.lpush(key, "#{time}#{ENTRY_SEPARATOR}#{success ? 1 : 0}")
           r.ltrim(key, 0, options.max_sample_size - 1)
           r.expire(key, options.sample_ttl) if options.sample_ttl
@@ -138,13 +138,13 @@ module Faulty
       # @param (see Interface#reset)
       # @return (see Interface#reset)
       def reset(circuit)
-        redis do |r|
+        pipe do |r|
           r.del(
-            state_key(circuit),
             entries_key(circuit),
             opened_at_key(circuit),
             lock_key(circuit)
           )
+          r.set(state_key(circuit), 'closed')
         end
       end
 
@@ -179,6 +179,10 @@ module Faulty
       def history(circuit)
         entries = redis { |r| r.lrange(entries_key(circuit), 0, -1) }
         map_entries(entries).reverse
+      end
+
+      def list
+        redis { |r| r.smembers(list_key) }
       end
 
       # Redis storage is not fault-tolerant
@@ -217,6 +221,10 @@ module Faulty
         key(circuit, 'opened_at')
       end
 
+      def list_key
+        [options.key_prefix, 'list'].join(options.key_separator)
+      end
+
       # Set a value in Redis only if it matches a list of current values
       #
       # @param redis [Redis] The redis connection
@@ -241,7 +249,7 @@ module Faulty
       # Yield a Redis connection
       #
       # @yield [Redis] Yields the connection to the block
-      # @return [void]
+      # @return The value returned from the block
       def redis
         if options.client.respond_to?(:with)
           options.client.with { |redis| yield redis }

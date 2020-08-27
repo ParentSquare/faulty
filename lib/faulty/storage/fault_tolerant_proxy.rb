@@ -139,6 +139,20 @@ module Faulty
         @storage.history(circuit)
       end
 
+      # Safely get the list of circuit names
+      #
+      # If the backend is unavailable, this returns an empty array
+      #
+      # @see Interface#list
+      # @param (see Interface#list)
+      # @return (see Interface#list)
+      def list
+        @storage.list
+      rescue StandardError => e
+        options.notifier.notify(:storage_failure, circuit: circuit, action: :list, error: e)
+        []
+      end
+
       # This cache makes any storage fault tolerant, so this is always `true`
       #
       # @return [true]

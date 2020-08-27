@@ -132,13 +132,11 @@ module Faulty
       end
     end
 
-    # @param name [Symbol, String] The name of the circuit
+    # @param name [String] The name of the circuit
     # @param options [Hash] Attributes for {Options}
     # @yield [Options] For setting options in a block
     def initialize(name, **options, &block)
-      unless name.is_a?(String) || name.is_a?(Symbol)
-        raise ArgumentError, 'name must be a string or symbol'
-      end
+      raise ArgumentError, 'name must be a String' unless name.is_a?(String)
 
       @name = name
       @options = Options.new(options, &block)
