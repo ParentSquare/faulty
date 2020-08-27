@@ -9,6 +9,7 @@ Gem::Specification.new do |spec|
   spec.version = Faulty.version
   spec.authors = ['Justin Howard']
   spec.email = ['jmhoward0@gmail.com']
+  spec.licenses = ['MIT']
 
   spec.summary = 'Fault-tolerance tools for ruby based on circuit-breakers'
   spec.homepage = 'https://github.com/ParentSquare/faulty'

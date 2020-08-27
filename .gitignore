@@ -2,6 +2,7 @@
 /Gemfile.lock
 /vendor/
 /.ruby-version
+/*.gem
 
 /coverage/
 /doc/
