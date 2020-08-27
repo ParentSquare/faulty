@@ -14,11 +14,14 @@ module Faulty
         @logger = logger
       end
 
+      # (see ListenerInterface#handle)
       def handle(event, payload)
         return unless EVENTS.include?(event)
 
-        public_send(event, payload) if respond_to?(event)
+        send(event, payload) if respond_to?(event)
       end
+
+      private
 
       def circuit_cache_hit(payload)
         log(:debug, 'Circuit cache hit', payload[:circuit].name, key: payload[:key])
@@ -75,8 +78,6 @@ module Faulty
           error: payload[:error].message
         )
       end
-
-      private
 
       def log(level, msg, action, extra = {})
         extra_str = extra.map { |k, v| "#{k}=#{v}" }.join(' ')

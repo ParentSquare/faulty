@@ -4,10 +4,15 @@ module Faulty
   module Cache
     # A wrapper for cache backends that may raise errors
     #
+    # {Scope} automatically wraps all non-fault-tolerant cache backends with
+    # this class.
+    #
     # If the cache backend raises a `StandardError`, it will be captured and
     # sent to the notifier.
     class FaultTolerantProxy
-      # Options for FaultTolerantProxy
+      attr_reader :options
+
+      # Options for {FaultTolerantProxy}
       #
       # @!attribute [r] notifier
       #   @return [Events::Notifier] A Faulty notifier
