@@ -11,7 +11,7 @@ env:
   global:
     - COVERAGE=1
     # Encrypted code climate CC_TEST_REPORTER_ID=
-    # - secure: ''
+    - secure: 'a/qmESTnDq37KvBY4u1VcBEjd7Y3b16L28AiV0y3d7SbrGeuWPmTR7WMvD8b0CV1Ou5wpic9HAxC9u2ZYhy0/BN9I4AOnkyj4IXF9K+ETbTq2XOAix38hNF4a/Hl89mgKD3IPtjxVrQ83h7pxbqtQ2jPnLyiR7mTj0rfOmzTSaItcn/auONuvanHuitGjYTw3xUA1okbhMy8cVh3nbozP0m3eujSbSOpLD3N9+s+A8lE+6VbNvoygqoqdcQqlYH4q5x+SGaD7L1illIywxVWpExygB9jIum3mhaXe7ThJ/FkUfCHqINRejR63QDVwvYGRPnrlg0c8rNiLDjfVyY83ESSqXN1hf/vzyVtGruj4t/35VsFL/fyE/iNGDDmMu/GH5Gbsa9+lykeRSOL97VAlzAuVeb4AwvZ9HFV5QcbGnNkrVG8sTMIOcUzJVGX2C38fnElGxGwrbpV8+ReMZtcQZSg2isRRKDUFRBdFFUrHKK8uqII+a5oZDi5OK7ytZHg8XTbrpJXStYhQjRMfbHsd2YFGeiyLWqzrASd/bpgdyLtZuQ1/r7z1IVGJjb01nNhD4mchU3Lj4mxaQe2zvBEhbUZufz2zrIDPiKxsQvYcqw4nvHJE7zWM0cMgHvQrzcZH44sHVtdVavjSPoOzN6665zaA9sCcYffESCPPQTnopE='
 
 services:
   - redis-server
@@ -37,8 +37,7 @@ jobs:
       deploy:
         provider: rubygems
         api_key:
-          # Encrypted rubygems API key
-          # secure: ''
+          secure: 'eS6u+XyT6hHk/0gLXWzoe3RTJzEVFQHcJ+MNGSp7iq+cavJHisndcYBmUxi6/Ttb/aT/YoczhIWYo6WPbcjDqWszDfUsrQyaiOiZy4BBcMwN1WHeHkeRHfO2NX7us0AKO66TAiNfpMqUR2UT/c1LCPtLb+bkG6IFWxRuF5Fo32e0th6Z+hJ4Se2E/Qg1lrZk5zBlhQSOtU88vWQAkT9FdzpwBskVENBuDmH5YTV2Y28QYHsDtSNIxoDiUK9LOoPxaYUQp5ZZ58HZHtPdNydPHvtOXaWcBlakH5HNkh3FUHsxqbA1b3U412PC4TK+0jnxfISH4EOAMZEkL1nmroJORlb5nlwG1eiHpPVbOke1z2cZarGmWWAEf9bGE99GVbuxUxRrm9i1rmPdJY2G6Z0Kz8zoLTDYI/9l2P81/99a7h84rWACeeI3bcdvqViLxUuVMiwQjQsOZhzfq1M6jjETAWAI3AMRLxaGSgp0LV3WtaSWk1T5qvOvOF2HIfQ1EMd74kblJrVGWUiqd94/UgQoB/+lg9PdP/h4aHY5Cq1ec83wzaO6leKNlO+EQfyAVD1nd8kxo7YHEUpcB8wWCNFA5iaLqwIMt7aeWvG/BVUIH0apppzJGDy9UZ0gGsYi6ID3gbRRgmHIdJospr6TN7hksu1ZqkwEaprpXq8zH0KFYW0='
         gem: faulty
         on:
           tags: true
