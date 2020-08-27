@@ -7,6 +7,8 @@ module Faulty
     # If the cache backend raises a `StandardError`, it will be captured and
     # sent to the notifier.
     class FaultTolerantProxy
+      # Options for FaultTolerantProxy
+      #
       # @!attribute [r] notifier
       #   @return [Events::Notifier] A Faulty notifier
       Options = Struct.new(

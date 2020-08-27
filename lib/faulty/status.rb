@@ -41,11 +41,13 @@ module Faulty
   ) do
     include ImmutableOptions
 
+    # The allowed state values
     STATES = %i[
       open
       closed
     ].freeze
 
+    # The allowed lock values
     LOCKS = %i[
       open
       closed

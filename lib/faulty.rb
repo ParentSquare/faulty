@@ -4,24 +4,18 @@ require 'securerandom'
 require 'concurrent-ruby'
 
 require 'faulty/immutable_options'
-require 'faulty/cache/default'
-require 'faulty/cache/fault_tolerant_proxy'
-require 'faulty/cache/mock'
-require 'faulty/cache/null'
-require 'faulty/cache/rails'
+require 'faulty/cache'
 require 'faulty/circuit'
 require 'faulty/error'
 require 'faulty/events'
-require 'faulty/events/callback_listener'
-require 'faulty/events/notifier'
-require 'faulty/events/log_listener'
 require 'faulty/result'
 require 'faulty/scope'
 require 'faulty/status'
-require 'faulty/storage/fault_tolerant_proxy'
-require 'faulty/storage/memory'
-require 'faulty/storage/redis'
+require 'faulty/storage'
 
+# The top-level namespace for Faulty
+#
+# Fault-tolerance tools for ruby based on circuit-breakers
 module Faulty
   class << self
     # Start the Faulty environment
@@ -37,8 +31,8 @@ module Faulty
     #
     # @param scope_name [Symbol] The name of the default scope. Can be set to
     #   `nil` to skip creating a default scope.
-    # @param (see Scope#initialize)
-    # @yield (see Scope#initialize)
+    # @param config [Hash] Attributes for {Scope::Options}
+    # @yield [Scope::Options] For setting options in a block
     # @return [self]
     def init(scope_name = :default, **config, &block)
       raise AlreadyInitializedError if @scopes
@@ -97,9 +91,7 @@ module Faulty
     # @yield (see Scope#circuit)
     # @return (see Scope#circuit)
     def circuit(name, **config, &block)
-      scope = default
-
-      scope.circuit(name, **config, &block)
+      default.circuit(name, **config, &block)
     end
 
     # The current time

@@ -29,6 +29,8 @@ module Faulty
     attr_reader :name
     attr_reader :options
 
+    # Options for {Circuit}
+    #
     # @!attribute [r] cache_expires_in
     #   @return [Integer, nil] The number of seconds to keep
     #     cached results. A value of nil will keep the cache indefinitely.

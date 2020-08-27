@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Faulty
+  # The namespace for Faulty events and event listeners
   module Events
     # All possible events that can be raised by Faulty
     EVENTS = %i[
@@ -18,3 +19,7 @@ module Faulty
     ].freeze
   end
 end
+
+require 'faulty/events/callback_listener'
+require 'faulty/events/notifier'
+require 'faulty/events/log_listener'

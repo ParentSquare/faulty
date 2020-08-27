@@ -14,6 +14,8 @@ module Faulty
   class Scope
     attr_reader :options
 
+    # Options for {Scope}
+    #
     # @!attribute [r] cache
     #   @return [Cache::Interface] A cache backend if you want
     #     to use Faulty's cache support. Automatically wrapped in a
@@ -82,8 +84,9 @@ module Faulty
     # a new circuit will be created. If an existing circuit is returned, then
     # the {options} param and block are ignored.
     #
-    # @param (see Circuit#initialize)
-    # @yield (see Circuit#initialize)
+    # @param name [Symbol, String] The name of the circuit
+    # @param options [Hash] Attributes for {Circuit::Options}
+    # @yield [Circuit::Options] For setting options in a block
     # @return [Circuit] The new circuit or the existing circuit if it already exists
     def circuit(name, **options, &block)
       options = options.merge(circuit_options)

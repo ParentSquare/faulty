@@ -375,23 +375,154 @@ end
 
 ## Configuring the Storage Backend
 
-TODO
+### Memory
+
+The `Faulty::Cache::Memory` backend is the default storage backend. The default
+configuration:
+
+```ruby
+Faulty.init do |config|
+  config.storage = Faulty::Storage::Memory.new do |storage|
+    # The maximum number of circuit runs that will be stored
+    storage.max_sample_size = 100
+  end
+end
+```
+
+### Redis
+
+The `Faulty::Cache::Redis` backend provides distributed circuit storage using
+Redis. The default configuration:
+
+```ruby
+Faulty.init do |config|
+  config.storage = Faulty::Storage::Redis.new do |storage|
+    # The Redis client. Accepts either a Redis instance, or a ConnectionPool
+    # of Redis instances.
+    storage.client = ::Redis.new
+
+    # The prefix to prepend to all redis keys used by Faulty circuits
+    storage.key_prefix = 'faulty'
+
+    # A string to separate the parts of the redis key
+    storage.key_separator: ':'
+
+    # The maximum number of circuit runs that will be stored
+    storage.max_sample_size = 100
+
+    # The maximum number of seconds that a circuit run will be stored
+    storage.sample_ttl = 1800
+  end
+end
+```
 
 ## Scopes
 
-TODO
+It is possible to have multiple configurations of Faulty running within the same
+process. The most common configuration is to simply use `Faulty.init` to
+configure Faulty globally, however it is possible to have additional
+configurations using scopes.
 
-## Implementing a Storage Backend
+### The default scope
 
-TODO
+When you call `Faulty.init`, you are actually creating the default scope. You
+can access this scope directly by calling `Faulty.default`.
+
+```ruby
+# We create the default scope
+Faulty.init
+
+# Access the default scope
+scope = Faulty.default
+
+# Alternatively, access the scope by name
+scope = Faulty[:default]
+```
+
+You can rename the default scope if desired:
+
+```ruby
+Faulty.init(:custom_default)
+
+scope = Faulty.default
+scope = Faulty[:custom_default]
+```
+
+### Multiple Scopes
+
+If you want multiple scopes, but want global, thread-safe access to
+them, you can use `Faulty.register`:
+
+```ruby
+api_scope = Faulty::Scope.new do |config|
+  # This accepts the same options as Faulty.init
+end
+
+Faulty.register(:api, api_scope)
+
+# Now access the scope globally
+Faulty[:api]
+```
+
+When you call `Faulty.circuit`, that's the same as calling
+`Faulty.default.circuit`, so you can apply the same API to any other Faulty
+scope:
+
+```ruby
+Faulty[:api].circuit(:api_circuit).run { 'ok' }
+```
+
+### Standalone Scopes
+
+If you choose, you can use Faulty scopes without registering them globally. This
+could be useful if you prefer dependency injection over global state.
+
+```ruby
+faulty = Faulty::Scope.new
+faulty.circuit(:standalone_circuit)
+```
+
+Calling `circuit` on the scope still has the same memoization behavior that
+`Faulty.circuit` has, so subsequent calls to the same circuit will return a
+memoized circuit object.
 
 ## Implementing a Cache Backend
 
-TODO
+You can implement your own cache backend by following the documentation in
+`Faulty::Cache::Interface`. It is a fairly simple API, with only get/set
+methods. For example:
 
-## Implementing a Event Listener
+```ruby
+class MyFaultyCache
+  def initialize(my_cache)
+    @cache = my_cache
+  end
 
-TODO
+  def read(key)
+    @cache.read(key)
+  end
+
+  def write(key, value, expires_in: nil)
+    @cache.write(key, value, expires_in)
+  end
+
+  # Set this to false unless your cache never raises errors
+  def fault_tolerant?
+    false
+  end
+end
+```
+
+Feel free to open a pull request if your cache backend would be useful for other
+users.
+
+## Implementing a Storage Backend
+
+You can implement your own storage backend by following the documentation in
+`Faulty::Storage::Interface`. Since the storage has some tricky requirements
+regarding concurrency, the `Faulty::Storage::Memory` can be used as a reference
+implementation. Feel free to open a pull request if your storage backend
+would be useful for other users.
 
 ## Alternatives
 
