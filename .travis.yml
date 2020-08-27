@@ -6,11 +6,15 @@ rvm:
   - 2.5
   - 2.6
   - 2.7
+
 env:
   global:
     - COVERAGE=1
     # Encrypted code climate CC_TEST_REPORTER_ID=
     # - secure: ''
+
+services:
+  - redis-server
 
 before_script:
   - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
