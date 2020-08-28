@@ -239,4 +239,17 @@ RSpec.context :circuits do
 
     it 'accepts a connection pool'
   end
+
+  context 'with fault-tolerant redis storage' do
+    let(:storage) do
+      Faulty::Storage::FaultTolerantProxy.new(
+        Faulty::Storage::Redis.new,
+        notifier: Faulty::Events::Notifier.new
+      )
+    end
+
+    after { circuit.reset! }
+
+    it_behaves_like 'circuit'
+  end
 end
