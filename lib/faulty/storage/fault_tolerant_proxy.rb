@@ -53,8 +53,8 @@ module Faulty
       # @see Interface#open
       # @param (see Interface#open)
       # @return (see Interface#open)
-      def open(circuit)
-        @storage.open(circuit)
+      def open(circuit, opened_at)
+        @storage.open(circuit, opened_at)
       rescue StandardError => e
         options.notifier.notify(:storage_failure, circuit: circuit, action: :open, error: e)
         false
@@ -65,8 +65,8 @@ module Faulty
       # @see Interface#reopen
       # @param (see Interface#reopen)
       # @return (see Interface#reopen)
-      def reopen(circuit)
-        @storage.reopen(circuit)
+      def reopen(circuit, opened_at, previous_opened_at)
+        @storage.reopen(circuit, opened_at, previous_opened_at)
       rescue StandardError => e
         options.notifier.notify(:storage_failure, circuit: circuit, action: :reopen, error: e)
         false
