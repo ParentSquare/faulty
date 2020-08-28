@@ -167,10 +167,8 @@ module Faulty
       # @return [Status] The stub status
       def stub_status(circuit)
         Faulty::Status.new(
-          cool_down: circuit.options.cool_down,
-          stub: true,
-          sample_threshold: circuit.options.sample_threshold,
-          rate_threshold: circuit.options.rate_threshold
+          options: circuit.options,
+          stub: true
         )
       end
     end
