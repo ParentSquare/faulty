@@ -15,6 +15,7 @@ end
 
 require 'faulty'
 require 'timecop'
+require 'honeybadger/ruby'
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
@@ -26,7 +27,7 @@ RSpec.configure do |config|
   end
 
   config.disable_monkey_patching!
-  config.warnings = true
+  config.warnings = false
 
   config.after do
     Timecop.return

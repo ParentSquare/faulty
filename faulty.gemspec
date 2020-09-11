@@ -27,6 +27,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'bundler', '>= 1.17', '< 3'
   spec.add_development_dependency 'byebug', '~> 11.0'
   spec.add_development_dependency 'connection_pool', '~> 2.0'
+  spec.add_development_dependency 'honeybadger', '>= 2.0'
   spec.add_development_dependency 'irb', '~> 1.0'
   spec.add_development_dependency 'redcarpet', '~> 3.5'
   spec.add_development_dependency 'redis', '~> 3.0'
