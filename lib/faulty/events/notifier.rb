@@ -11,6 +11,9 @@ module Faulty
 
       # Notify all listeners of an event
       #
+      # If a listener raises an error while handling an event, that error will
+      # be captured and written to STDERR.
+      #
       # @param event [Symbol] The event name
       # @param payload [Hash] A hash of event payload data. The payload keys
       #   differ between events, but should be consistent across calls for a
@@ -18,7 +21,13 @@ module Faulty
       def notify(event, payload)
         raise ArgumentError, "Unknown event #{event}" unless EVENTS.include?(event)
 
-        @listeners.each { |l| l.handle(event, payload) }
+        @listeners.each do |listener|
+          begin
+            listener.handle(event, payload)
+          rescue StandardError => e
+            warn "Faulty listener #{listener.class.name} crashed: #{e.message}"
+          end
+        end
       end
     end
   end
