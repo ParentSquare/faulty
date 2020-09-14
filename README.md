@@ -67,6 +67,51 @@ end
 For a full list of configuration options, see the
 [Global Configuration](#global-configuration) section.
 
+## What is this for?
+
+Circuit breakers are a fault-tolerance tool for creating separation between your
+application and external dependencies. For example, your application may call an
+external API to send a text message:
+
+```ruby
+TextApi.send(message)
+```
+
+In normal operation, this API call is very fast. However what if the texting
+service started hanging? Your application would quickly use up a lot of
+resources waiting for requests to return from the service. You could consider
+adding a timeout to your request:
+
+```ruby
+TextApi.send(message, timeout: 5)
+```
+
+Now your application will terminate requests after 5 seconds, but that could
+still add up to a lot of resources if you call this thousands of times. Circuit
+breakers solve this problem.
+
+```ruby
+Faulty.circuit(:text_api).run do
+  TextApi.send(message, timeout: 5)
+end
+```
+
+Now, when the text API hangs, the first few will run and start timing out. This
+will trip the circuit. After the circuit trips
+(see [How it Works](#how-it-works)), calls to the text API will be paused for
+the configured cool down period. Your application resources are not overwhelmed.
+
+You are free to implement a fallback or error handling however you wish, for
+example, in this case, you might add the text message to a failure queue:
+
+```ruby
+Faulty.circuit(:text_api).run do
+  TextApi.send(message, timeout: 5)
+rescue Faulty::CircuitError => e
+  FailureQueue.enqueue(message)
+end
+```
+
 ## Basic Usage
 
 To create a circuit, call `Faulty.circuit`. This can be done as you use the
