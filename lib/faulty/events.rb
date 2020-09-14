@@ -21,5 +21,6 @@ module Faulty
 end
 
 require 'faulty/events/callback_listener'
-require 'faulty/events/notifier'
+require 'faulty/events/honeybadger_listener'
 require 'faulty/events/log_listener'
+require 'faulty/events/notifier'

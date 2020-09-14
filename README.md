@@ -137,9 +137,9 @@ Faulty's implementation are:
 - Event-based monitoring
 
 Following the principals of the circuit-breaker pattern, the block given to
-`run` or `try_run` will always be executed as long as long as it never raises an
-error. If the block _does_ raise an error, then the circuit keeps track of the
-number of runs and the failure rate.
+`run` or `try_run` will always be executed as long as it never raises an error.
+If the block _does_ raise an error, then the circuit keeps track of the number
+of runs and the failure rate.
 
 Once both thresholds are breached, the circuit is opened. Once open, the
 circuit starts the cool-down period. Any executions within that cool-down are
@@ -201,7 +201,7 @@ A circuit can be created with the following configuration options. Those options
 are only set once, synchronized across threads, and will persist in-memory until
 the process exits. If you're using [scopes](#scopes), the options are retained
 within the context of each scope. All options given after the first call to
-`Faulty.circuit` (or `Scope.circuit` are ignored.
+`Faulty.circuit` (or `Scope.circuit`) are ignored.
 
 This is because the circuit objects themselves are internally memoized, and are
 read-only once created.
@@ -338,11 +338,16 @@ events. The full list of events is available from `Faulty::Events::EVENTS`.
   closed. Payload: `circuit`
 - `circuit_success` - A circuit execution was successful. Payload: `circuit`,
   `status`
-- `storage_failure` - A storage backend raised an error. Payload `circuit`,
-  `action`, `error`
+- `storage_failure` - A storage backend raised an error. Payload `circuit` (can
+  be nil), `action`, `error`
 
 By default events are logged using `Faulty::Events::LogListener`, but that can
 be replaced, or additional listeners can be added.
+
+### CallbackListener
+
+The callback listener is useful for ad-hoc handling of events. You can specify
+an event handler by calling a method on the callback handler by the same name.
 
 ```ruby
 Faulty.init do |config|
@@ -355,6 +360,17 @@ Faulty.init do |config|
   config.listeners = [listener]
 end
 ```
+
+### Other Built-in Listeners
+
+In addition to the log and callback listeners, Faulty intends to implement
+built-in service-specific handlers to make it easy to integrate with monitoring
+and reporting software.
+
+- `Faulty::Events::HoneybadgerListener`: Reports circuit and backend errors to
+  the Honeybadger error reporting service.
+
+### Custom Listeners
 
 You can implement your own listener by following the documentation in
 `Faulty::Events::ListenerInterface`. For example:
@@ -405,7 +421,7 @@ Faulty.init do |config|
     storage.key_prefix = 'faulty'
 
     # A string to separate the parts of the redis key
-    storage.key_separator: ':'
+    storage.key_separator = ':'
 
     # The maximum number of circuit runs that will be stored
     storage.max_sample_size = 100
@@ -416,7 +432,7 @@ Faulty.init do |config|
 end
 ```
 
-### Listing Circuits
+## Listing Circuits
 
 For monitoring or debugging, you may need to retrieve a list of all circuit
 names. This is possible with `Faulty.list_circuits` (or the equivalent method on
