@@ -448,6 +448,36 @@ statuses = Faulty.list_circuits.map do |name|
 end
 ```
 
+## Locking Circuits
+
+It is possible to lock a circuit open or closed. A circuit that is locked open
+will never execute its block, and always raise an `Faulty::OpenCircuitError`.
+This is useful in cases where you need to manually disable a dependency
+entirely. If a cached value is available, that will be returned from the circuit
+until it expires, even outside its refresh period.
+
+```ruby
+Faulty.circuit(:broken_api).lock_open!
+```
+
+A circuit that is locked closed will never trip. This is useful in cases where a
+circuit is continuously tripping incorrectly. If a cached value is available, it
+will have the same behavior as an unlocked circuit.
+
+```ruby
+Faulty.circuit(:false_positive).lock_closed!
+```
+
+To remove a lock of either type:
+
+```ruby
+Faulty.circuit(:fixed).unlock!
+```
+
+Locking or unlocking a circuit has no concurrency guarantees, so it's not
+recommended to lock or unlock circuits from production code. Instead, locks are
+intended as an emergency tool for troubleshooting and debugging.
+
 ## Scopes
 
 It is possible to have multiple configurations of Faulty running within the same
