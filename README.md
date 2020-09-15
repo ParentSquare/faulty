@@ -636,14 +636,33 @@ would be useful for other users.
 Faulty has its own opinions about how to implement a circuit breaker in Ruby,
 but there are and have been many other options:
 
-- [circuitbox](https://github.com/yammer/circuitbox)
-- [circuit_breaker-ruby](https://github.com/scripbox/circuit_breaker-ruby)
-- [stoplight](https://github.com/orgsync/stoplight) (currently unmaintained)
+### Currently Active
+
+- [semian](https://github.com/Shopify/semian): A resiliency toolkit that
+  includes circuit breakers. It uses adapters to auto-wire circuits, and it has
+  only host-local storage by design.
+- [circuitbox](https://github.com/yammer/circuitbox): Similar in function to
+  Faulty, but with a different API. It uses Moneta to abstract circuit storage
+  to allow any key-value store.
+
+### Previous Work
+
+- [circuit_breaker-ruby](https://github.com/scripbox/circuit_breaker-ruby) (no
+  recent activity)
+- [stoplight](https://github.com/orgsync/stoplight) (unmaintained)
 - [circuit_breaker](https://github.com/wooga/circuit_breaker) (archived)
 - [simple_circuit_breaker](https://github.com/soundcloud/simple_circuit_breaker)
   (unmaintained)
 - [breaker](https://github.com/ahawkins/breaker) (unmaintained)
 - [circuit_b](https://github.com/alg/circuit_b) (unmaintained)
+
+### Faulty's Unique Features
+
+- Simple API but configurable for advanced users
+- Pluggable storage backends (circuitbox also has this)
+- Global, or local configuration with scopes
+- Integrated caching support tailored for fault-tolerance
+- Manually lock circuits open or closed
 
 [api docs]: https://www.rubydoc.info/github/ParentSquare/faulty/master
 [martin fowler]: https://www.martinfowler.com/bliki/CircuitBreaker.html
