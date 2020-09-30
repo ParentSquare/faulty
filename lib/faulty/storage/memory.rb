@@ -83,7 +83,7 @@ module Faulty
         memory = fetch(circuit)
         memory.runs.borrow do |runs|
           runs.push([time, success])
-          runs.pop if runs.size > options.max_sample_size
+          runs.shift if runs.size > options.max_sample_size
         end
         memory.status(circuit.options)
       end
