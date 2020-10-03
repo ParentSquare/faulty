@@ -11,6 +11,8 @@ class Faulty
     # - If ActiveSupport is available, it will use an `ActiveSupport::Cache::MemoryStore`
     # - Otherwise it will use a {Faulty::Cache::Null}
     class Default
+      extend Forwardable
+
       def initialize
         @cache = if defined?(::Rails)
           Cache::Rails.new(::Rails.cache)
@@ -21,28 +23,15 @@ class Faulty
         end
       end
 
-      # Read from the internal cache by key
+      # @!method read(key)
+      #   (see Faulty::Cache::Interface#read)
       #
-      # @param (see Cache::Interface#read)
-      # @return (see Cache::Interface#read)
-      def read(key)
-        @cache.read(key)
-      end
-
-      # Write to the internal cache
+      # @!method write(key, value, expires_in: expires_in)
+      #   (see Faulty::Cache::Interface#write)
       #
-      # @param (see Cache::Interface#read)
-      # @return (see Cache::Interface#read)
-      def write(key, value, expires_in: nil)
-        @cache.write(key, value, expires_in: expires_in)
-      end
-
-      # This cache is fault tolerant if the internal one is
-      #
-      # @return [Boolean]
-      def fault_tolerant?
-        @cache.fault_tolerant?
-      end
+      # @!method fault_tolerant
+      #   (see Faulty::Cache::Interface#fault_tolerant?)
+      def_delegators :@cache, :read, :write, :fault_tolerant?
     end
   end
 end

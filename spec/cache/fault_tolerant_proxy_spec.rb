@@ -3,7 +3,7 @@
 RSpec.describe Faulty::Cache::FaultTolerantProxy do
   let(:notifier) { Faulty::Events::Notifier.new }
 
-  let(:failing_cache) do
+  let(:failing_cache_class) do
     Class.new do
       def method_missing(*_args) # rubocop:disable Style/MethodMissingSuper
         raise 'fail'
@@ -15,26 +15,49 @@ RSpec.describe Faulty::Cache::FaultTolerantProxy do
     end
   end
 
-  let(:fake_cache) do
-    Class.new do
-      def method_missing(*_args) # rubocop:disable Style/MethodMissingSuper
-        'fake'
-      end
-
-      def respond_to_missing?(*_args)
-        true
-      end
-    end
+  let(:failing_cache) do
+    failing_cache_class.new
   end
 
+  let(:mock_cache) { Faulty::Cache::Mock.new }
+
   it 'delegates to backend when reading succeeds' do
-    value = described_class.new(fake_cache.new, notifier: notifier).read('foo')
-    expect(value).to eq('fake')
+    mock_cache.write('foo', 'val')
+    value = described_class.new(mock_cache, notifier: notifier).read('foo')
+    expect(value).to eq('val')
   end
 
   it 'returns nil when reading fails' do
-    backend = failing_cache.new
-    result = described_class.new(backend, notifier: notifier).read('foo')
+    expect(notifier).to receive(:notify)
+      .with(:cache_failure, key: 'foo', action: :read, error: instance_of(RuntimeError))
+    result = described_class.new(failing_cache, notifier: notifier).read('foo')
     expect(result).to eq(nil)
+  end
+
+  it 'delegates to backend when writing succeeds' do
+    described_class.new(mock_cache, notifier: notifier).write('foo', 'val')
+    expect(mock_cache.read('foo')).to eq('val')
+  end
+
+  it 'skips writing when backend fails' do
+    expect(notifier).to receive(:notify)
+      .with(:cache_failure, key: 'foo', action: :write, error: instance_of(RuntimeError))
+    proxy = described_class.new(failing_cache, notifier: notifier)
+    proxy.write('foo', 'val')
+  end
+
+  it 'is always fault tolerant' do
+    expect(described_class.new(Object.new, notifier: notifier)).to be_fault_tolerant
+  end
+
+  describe '.wrap' do
+    it 'returns fault-tolerant cache unmodified' do
+      expect(described_class.wrap(mock_cache, notifier: notifier)).to eq(mock_cache)
+    end
+
+    it 'wraps fault-tolerant cache' do
+      expect(described_class.wrap(Faulty::Cache::Rails.new(nil), notifier: notifier))
+        .to be_a(described_class)
+    end
   end
 end

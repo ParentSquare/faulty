@@ -172,7 +172,8 @@ end.or_default([])
 
 ## How it Works
 
-Faulty implements a version of circuit breakers inspired by
+Faulty implements a version of circuit breakers inspired by "Release It!: Design
+and Deploy Production-Ready Software" by [Michael T. Nygard][michael nygard] and
 [Martin Fowler's post][martin fowler] on the subject. A few notable features of
 Faulty's implementation are:
 
@@ -180,6 +181,7 @@ Faulty's implementation are:
 - Integrated caching inspired by Netflix's [Hystrix][hystrix] with automatic
   cache jitter and error fallback.
 - Event-based monitoring
+- Flexible fault-tolerant storage with optional fallbacks
 
 Following the principals of the circuit-breaker pattern, the block given to
 `run` or `try_run` will always be executed as long as it never raises an error.
@@ -215,11 +217,18 @@ Faulty.init do |config|
   # The cache backend to use. By default, Faulty looks for a Rails cache. If
   # that's not available, it uses an ActiveSupport::Cache::Memory instance.
   # Otherwise, it uses a Faulty::Cache::Null and caching is disabled.
+  # Whatever backend is given here is automatically wrapped in
+  # Faulty::Cache::AutoWire. This adds fault-tolerance features, see the
+  # AutoWire API docs for more details.
   config.cache = Faulty::Cache::Default.new
 
   # The storage backend. By default, Faulty uses an in-memory store. For most
   # production applications, you'll want a more robust backend. Faulty also
   # provides Faulty::Storage::Redis for this.
+  # Whatever backend is given here is automatically wrapped in
+  # Faulty::Storage::AutoWire. This adds fault-tolerance features, see the
+  # AutoWire APi docs for more details. If an array of storage backends is
+  # given, each one will be tried in order until one succeeds.
   config.storage = Faulty::Storage::Memory.new
 
   # An array of event listeners. Each object in the array should implement
@@ -380,7 +389,12 @@ Faulty backends are fault-tolerant by default. Any `StandardError`s raised by
 the storage or cache backends are captured and suppressed. Failure events for
 these errors are sent to the notifier.
 
-If the storage backend fails, all circuits will default to open. If the cache
+In case of a flaky storage or cache backend, Faulty also uses independent
+in-memory circuits to track failures so that we don't keep calling a backend
+that is failing. See the API docs for `Cache::AutoWire`, and `Storage::AutoWire`
+for more details.
+
+If the storage backend fails, circuits will default to closed. If the cache
 backend fails, all cache queries will miss.
 
 ## Event Handling
@@ -456,10 +470,19 @@ end
 
 ## Configuring the Storage Backend
 
+A storage backend is required to use Faulty. By default, it uses in-memory
+storage, but Redis is also available, along with a number of wrappers used to
+improve resiliency and fault-tolerance.
+
 ### Memory
 
-The `Faulty::Cache::Memory` backend is the default storage backend. The default
-configuration:
+The `Faulty::Storage::Memory` backend is the default storage backend. You may
+prefer this implementation if you want to avoid the complexity and potential
+failure-mode of cross-network circuit storage. The trade-off is that circuit
+state is only contained within a single process and will not be saved across
+application restarts. Locks will also be cleared on restart.
+
+The default configuration:
 
 ```ruby
 Faulty.init do |config|
@@ -472,15 +495,22 @@ end
 
 ### Redis
 
-The `Faulty::Cache::Redis` backend provides distributed circuit storage using
-Redis. The default configuration:
+The `Faulty::Storage::Redis` backend provides distributed circuit storage using
+Redis. Although Faulty takes steps to reduce risk
+(See [Fault Tolerance](#fault-tolerance)), using cross-network storage does
+introduce some additional failure modes. To reduce this risk, be sure to set
+conservative timeouts for your Redis connection. Setting high timeouts will
+print warnings to stderr.
+
+The default configuration:
 
 ```ruby
 Faulty.init do |config|
   config.storage = Faulty::Storage::Redis.new do |storage|
     # The Redis client. Accepts either a Redis instance, or a ConnectionPool
-    # of Redis instances.
-    storage.client = ::Redis.new
+    # of Redis instances. A low timeout is highly recommended to prevent
+    # cascading failures when evaluating circuits.
+    storage.client = ::Redis.new(timeout: 1)
 
     # The prefix to prepend to all redis keys used by Faulty circuits
     storage.key_prefix = 'faulty'
@@ -493,9 +523,125 @@ Faulty.init do |config|
 
     # The maximum number of seconds that a circuit run will be stored
     storage.sample_ttl = 1800
+
+    # The maximum number of seconds to store a circuit. Does not apply to
+    # locks, which are indefinite.
+    storage.circuit_ttl = 604_800 # 1 Week
+
+    # The number of seconds between circuit expirations. Changing this setting
+    # is not recommended. See API docs for more implementation details.
+    storage.list_granularity = 3600
+
+    # If true, disables warnings about recommended client settings like timeouts
+    storage.disable_warnings = false
   end
 end
 ```
+
+### FallbackChain
+
+The `Faulty::Storage::FallbackChain` backend is a wrapper for multiple
+prioritized storage backends. If the first backend in the chain fails,
+consecutive backends are tried until one succeeds. The recommended use-case for
+this is to fall back on reliable storage if a networked storage backend fails.
+
+For example, you may configure Redis as your primary storage backend, with an
+in-memory storage backend as a fallback:
+
+```ruby
+Faulty.init do |config|
+  config.storage = Faulty::Storage::FallbackChain.new([
+    Faulty::Storage::Redis.new,
+    Faulty::Storage::Memory.new
+  ])
+end
+```
+
+Faulty instances will automatically use a fallback chain if an array is given to
+the `storage` option, so this example is equivalent to the above:
+
+```ruby
+Faulty.init do |config|
+  config.storage = [
+    Faulty::Storage::Redis.new,
+    Faulty::Storage::Memory.new
+  ]
+end
+```
+
+If the fallback chain fails-over to backup storage, circuit states will not
+carry over, so failover could be temporarily disruptive to your application.
+However, any calls to `#lock` or `#unlock` will always be persisted to all
+backends so that locks are maintained during failover.
+
+### Storage::FaultTolerantProxy
+
+This wrapper is applied to all non-fault-tolerant storage backends by default
+(see the [API docs for `Faulty::Storage::AutoWire`](https://www.rubydoc.info/gems/faulty/Faulty/Storage/AutoWire)).
+
+`Faulty::Storage::FaultTolerantProxy` is a wrapper that suppresses storage
+errors and returns sensible defaults during failures. If a storage backend is
+failing, all circuits will be treated as closed regardless of locks or previous
+history.
+
+If you wish your application to use a secondary storage backend instead of
+failing closed, use `FallbackChain`.
+
+### Storage::CircuitProxy
+
+This wrapper is applied to all non-fault-tolerant storage backends by default
+(see the [API docs for `Faulty::Storage::AutoWire`](https://www.rubydoc.info/gems/faulty/Faulty/Cache/AutoWire)).
+
+`Faulty::Storage::CircuitProxy` is a wrapper that uses an independent in-memory
+circuit to track failures to storage backends. If a storage backend fails
+continuously, it will be temporarily disabled and raise `Faulty::CircuitError`s.
+
+Typically this is used inside a `FaultTolerantProxy` or `FallbackChain` so that
+these storage failures are handled gracefully.
+
+## Configuring the Cache Backend
+
+### Null
+
+The `Faulty::Cache::Null` cache disables caching. It is the default if Rails and
+ActiveSupport are not present.
+
+### Rails
+
+`Faulty::Cache::Rails` is the default cache if Rails or ActiveSupport are
+present. If Rails is present, it uses `Rails.cache` as the backend. If
+ActiveSupport is present, but Rails is not, it creates a new
+`ActiveSupport::Cache::MemoryStore` by default.  This backend can be used with
+any `ActiveSupport::Cache`.
+
+```ruby
+Faulty.init do |config|
+  config.cache = Faulty::Cache::Rails.new(
+    ActiveSupport::Cache::RedisCacheStore.new
+  )
+end
+```
+
+### Cache::FaultTolerantProxy
+
+This wrapper is applied to all non-fault-tolerant cache backends by default
+(see the API docs for `Faulty::Cache::AutoWire`).
+
+`Faulty::Cache::FaultTolerantProxy` is a wrapper that suppresses cache errors
+and acts like a null cache during failures. Reads always return `nil`, and
+writes are no-ops.
+
+### Cache::CircuitProxy
+
+This wrapper is applied to all non-fault-tolerant circuit backends by default
+(see the API docs for `Faulty::Circuit::AutoWire`).
+
+`Faulty::Circuit::CircuitProxy` is a wrapper that uses an independent in-memory
+circuit to track failures to circuit backends. If a circuit backend fails
+continuously, it will be temporarily disabled and raise `Faulty::CircuitError`s.
+
+Typically this is used inside a `FaultTolerantProxy` so that these cache
+failures are handled gracefully.
 
 ## Listing Circuits
 
@@ -661,7 +807,7 @@ but there are and have been many other options:
 - [semian](https://github.com/Shopify/semian): A resiliency toolkit that
   includes circuit breakers. It uses adapters to auto-wire circuits, and it has
   only host-local storage by design.
-- [circuitbox](https://github.com/yammer/circuitbox): Similar in function to
+- [circuitbox](https://github.com/yammer/circuitbox): Similar in design to
   Faulty, but with a different API. It uses Moneta to abstract circuit storage
   to allow any key-value store.
 
@@ -680,10 +826,12 @@ but there are and have been many other options:
 
 - Simple API but configurable for advanced users
 - Pluggable storage backends (circuitbox also has this)
+- Protected storage access with fallback to safe storage
 - Global, or object-oriented configuration with multiple instances
 - Integrated caching support tailored for fault-tolerance
 - Manually lock circuits open or closed
 
 [api docs]: https://www.rubydoc.info/github/ParentSquare/faulty/master
+[michael nygard]: https://www.michaelnygard.com/
 [martin fowler]: https://www.martinfowler.com/bliki/CircuitBreaker.html
 [hystrix]: https://github.com/Netflix/Hystrix/wiki/How-it-Works

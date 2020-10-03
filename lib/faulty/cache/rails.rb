@@ -5,6 +5,8 @@ class Faulty
     # A wrapper for a Rails or ActiveSupport cache
     #
     class Rails
+      extend Forwardable
+
       # @param cache The Rails cache to wrap
       # @param fault_tolerant [Boolean] Whether the Rails cache is
       #   fault_tolerant. See {#fault_tolerant?} for more details
@@ -13,15 +15,12 @@ class Faulty
         @fault_tolerant = fault_tolerant
       end
 
-      # (see Interface#read)
-      def read(key)
-        @cache.read(key)
-      end
-
-      # (see Interface#read)
-      def write(key, value, expires_in: nil)
-        @cache.write(key, value, expires_in: expires_in)
-      end
+      # @!method read(key)
+      #   (see Faulty::Cache::Interface#read)
+      #
+      # @!method write(key, value, expires_in: expires_in)
+      #   (see Faulty::Cache::Interface#write)
+      def_delegators :@cache, :read, :write
 
       # Although ActiveSupport cache implementations are fault-tolerant,
       # Rails.cache is not guranteed to be fault tolerant. For this reason,

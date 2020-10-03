@@ -10,6 +10,8 @@ class Faulty
     # If the storage backend raises a `StandardError`, it will be captured and
     # sent to the notifier.
     class FaultTolerantProxy
+      extend Forwardable
+
       attr_reader :options
 
       # Options for {FaultTolerantProxy}
@@ -35,6 +37,53 @@ class Faulty
         @storage = storage
         @options = Options.new(options, &block)
       end
+
+      # Wrap a storage backend in a FaultTolerantProxy unless it's already
+      # fault tolerant
+      #
+      # @param storage [Storage::Interface] The storage to maybe wrap
+      # @return [Storage::Interface] The original storage or a {FaultTolerantProxy}
+      def self.wrap(storage, **options, &block)
+        return storage if storage.fault_tolerant?
+
+        new(storage, **options, &block)
+      end
+
+      # @!method lock(circuit, state)
+      #   Lock is not called in normal operation, so it doesn't capture errors
+      #
+      #   @see Interface#lock
+      #   @param (see Interface#lock)
+      #   @return (see Interface#lock)
+      #
+      # @!method unlock(circuit)
+      #   Unlock is not called in normal operation, so it doesn't capture errors
+      #
+      #   @see Interface#unlock
+      #   @param (see Interface#unlock)
+      #   @return (see Interface#unlock)
+      #
+      # @!method reset(circuit)
+      #   Reset is not called in normal operation, so it doesn't capture errors
+      #
+      #   @see Interface#reset
+      #   @param (see Interface#reset)
+      #   @return (see Interface#reset)
+      #
+      # @!method history(circuit)
+      #   History is not called in normal operation, so it doesn't capture errors
+      #
+      #   @see Interface#history
+      #   @param (see Interface#history)
+      #   @return (see Interface#history)
+      #
+      # @!method list
+      #   List is not called in normal operation, so it doesn't capture errors
+      #
+      #   @see Interface#list
+      #   @param (see Interface#list)
+      #   @return (see Interface#list)
+      def_delegators :@storage, :lock, :unlock, :reset, :history, :list
 
       # Add a history entry safely
       #
@@ -84,36 +133,6 @@ class Faulty
         false
       end
 
-      # Since lock is not called in normal operation, it does not capture
-      # errors
-      #
-      # @see Interface#lock
-      # @param (see Interface#lock)
-      # @return (see Interface#lock)
-      def lock(circuit, state)
-        @storage.lock(circuit, state)
-      end
-
-      # Since unlock is not called in normal operation, it does not capture
-      # errors
-      #
-      # @see Interface#unlock
-      # @param (see Interface#unlock)
-      # @return (see Interface#unlock)
-      def unlock(circuit)
-        @storage.unlock(circuit)
-      end
-
-      # Since reset is not called in normal operation, it does not capture
-      # errors
-      #
-      # @see Interface#reset
-      # @param (see Interface#reset)
-      # @return (see Interface#reset)
-      def reset(circuit)
-        @storage.reset(circuit)
-      end
-
       # Safely get the status of a circuit
       #
       # If the backend is unavailable, this returns a stub status that
@@ -127,30 +146,6 @@ class Faulty
       rescue StandardError => e
         options.notifier.notify(:storage_failure, circuit: circuit, action: :status, error: e)
         stub_status(circuit)
-      end
-
-      # Since history is not called in normal operation, it does not capture
-      # errors
-      #
-      # @see Interface#history
-      # @param (see Interface#history)
-      # @return (see Interface#history)
-      def history(circuit)
-        @storage.history(circuit)
-      end
-
-      # Safely get the list of circuit names
-      #
-      # If the backend is unavailable, this returns an empty array
-      #
-      # @see Interface#list
-      # @param (see Interface#list)
-      # @return (see Interface#list)
-      def list
-        @storage.list
-      rescue StandardError => e
-        options.notifier.notify(:storage_failure, action: :list, error: e)
-        []
       end
 
       # This cache makes any storage fault tolerant, so this is always `true`

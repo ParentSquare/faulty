@@ -2,6 +2,13 @@
 
 class Faulty
   module Storage
+    # A storage backend for storing circuit state in Redis.
+    #
+    # When using this or any networked backend, be sure to evaluate the risk,
+    # and set conservative timeouts so that the circuit storage does not cause
+    # cascading failures in your application when evaluating circuits. Always
+    # wrap this backend with a {FaultTolerantProxy} to limit the effect of
+    # these types of events.
     class Redis # rubocop:disable Metrics/ClassLength
       # Separates the time/status for history entry strings
       ENTRY_SEPARATOR = ':'
@@ -27,12 +34,17 @@ class Faulty
       #     circuit run history entry. Default `100`.
       # @!attribute [r] circuit_ttl
       #   @return [Integer] The maximum number of seconds to keep a circuit.
-      #     A value of `nil` disables circuit expiration.
+      #     A value of `nil` disables circuit expiration. This does not apply to
+      #     locks, which have an indefinite storage time.
       #     Default `604_800` (1 week).
       # @!attribute [r] list_granularity
       #   @return [Integer] The number of seconds after which a new set is
       #     created to store circuit names. The old set is kept until
       #     circuit_ttl expires. Default `3600` (1 hour).
+      # @!attribute [r] disable_warnings
+      #   @return [Boolean] By default, this class warns if the client options
+      #     are outside the recommended values. Set to true to disable these
+      #     warnings.
       Options = Struct.new(
         :client,
         :key_prefix,
@@ -40,7 +52,8 @@ class Faulty
         :max_sample_size,
         :sample_ttl,
         :circuit_ttl,
-        :list_granularity
+        :list_granularity,
+        :disable_warnings
       ) do
         include ImmutableOptions
 
@@ -53,7 +66,8 @@ class Faulty
             max_sample_size: 100,
             sample_ttl: 1800,
             circuit_ttl: 604_800,
-            list_granularity: 3600
+            list_granularity: 3600,
+            disable_warnings: false
           }
         end
 
@@ -62,7 +76,7 @@ class Faulty
         end
 
         def finalize
-          self.client = ::Redis.new unless client
+          self.client = ::Redis.new(timeout: 1) unless client
         end
       end
 
@@ -70,6 +84,8 @@ class Faulty
       # @yield [Options] For setting options in a block
       def initialize(**options, &block)
         @options = Options.new(options, &block)
+
+        check_client_options!
       end
 
       # Add an entry to storage
@@ -196,6 +212,9 @@ class Faulty
         map_entries(entries).reverse
       end
 
+      # List all unexpired circuits
+      #
+      # @return (see Interface#list)
       def list
         redis { |r| r.sunion(*all_list_keys) }
       end
@@ -328,6 +347,49 @@ class Faulty
         raw_entries.map do |e|
           time, state = e.split(ENTRY_SEPARATOR)
           [time.to_i, state == '1']
+        end
+      end
+
+      def check_client_options!
+        return if options.disable_warnings
+
+        check_redis_options!
+        check_pool_options!
+      rescue StandardError => e
+        warn "Faulty error while checking client options: #{e.message}"
+      end
+
+      def check_redis_options!
+        ropts = redis { |r| r.client.options }
+
+        bad_timeouts = {}
+        %i[connect_timeout read_timeout write_timeout].each do |time_opt|
+          bad_timeouts[time_opt] = ropts[time_opt] if ropts[time_opt] > 2
+        end
+
+        unless bad_timeouts.empty?
+          warn <<~MSG
+            Faulty recommends setting Redis timeouts <= 2 to prevent cascading
+            failures when evaluating circuits. Your options are:
+            #{bad_timeouts}
+          MSG
+        end
+
+        if ropts[:reconnect_attempts] > 1
+          warn <<~MSG
+            Faulty recommends setting Redis reconnect_attempts to <= 1 to
+            prevent cascading failures. Your setting is #{ropts[:reconnect_attempts]}
+          MSG
+        end
+      end
+
+      def check_pool_options!
+        if options.client.is_a?(ConnectionPool)
+          timeout = options.client.instance_variable_get(:@timeout)
+          warn(<<~MSG) if timeout > 2
+            Faulty recommends setting ConnectionPool timeouts <= 2 to prevent
+            cascading failures when evaluating circuits. Your setting is #{timeout}
+          MSG
         end
       end
     end

@@ -4,8 +4,9 @@ class Faulty
   module Storage
     # The default in-memory storage for circuits
     #
-    # This implementation is most suitable to single-process, low volume
-    # usage. It is thread-safe and circuit state is shared across threads.
+    # This implementation is thread-safe and circuit state is shared across
+    # threads. Since state is stored in-memory, this state is not shared across
+    # processes, or persisted across application restarts.
     #
     # Circuit state and runs are stored in memory. Although runs have a maximum
     # size within a circuit, there is no limit on the number of circuits that
@@ -18,6 +19,9 @@ class Faulty
     #
     # This can be used as a reference implementation for storage backends that
     # store a list of circuit run entries.
+    #
+    # @todo Add a more sophsticated implmentation that can limit the number of
+    #   circuits stored.
     class Memory
       attr_reader :options
 

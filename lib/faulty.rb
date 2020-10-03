@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'securerandom'
+require 'forwardable'
 require 'concurrent-ruby'
 
 require 'faulty/immutable_options'
@@ -124,14 +125,17 @@ class Faulty
   # Options for {Faulty}
   #
   # @!attribute [r] cache
+  #   @see Cache::AutoWire
   #   @return [Cache::Interface] A cache backend if you want
   #     to use Faulty's cache support. Automatically wrapped in a
-  #     {Cache::FaultTolerantProxy}. Default `Cache::Default.new`.
+  #     {Cache::AutoWire}. Default `Cache::AutoWire.new`.
   # @!attribute [r] storage
-  #   @return [Storage::Interface] The storage backend.
-  #     Automatically wrapped in a {Storage::FaultTolerantProxy}.
-  #     Default `Storage::Memory.new`.
+  #   @see Storage::AutoWire
+  #   @return [Storage::Interface, Array<Storage::Interface>] The storage
+  #   backend. Automatically wrapped in a {Storage::AutoWire}, so this can also
+  #   be given an array of prioritized backends. Default `Storage::AutoWire.new`.
   # @!attribute [r] listeners
+  #   @see Events::ListenerInterface
   #   @return [Array] listeners Faulty event listeners
   # @!attribute [r] notifier
   #   @return [Events::Notifier] A Faulty notifier. If given, listeners are
@@ -148,16 +152,8 @@ class Faulty
 
     def finalize
       self.notifier ||= Events::Notifier.new(listeners || [])
-
-      self.storage ||= Storage::Memory.new
-      unless storage.fault_tolerant?
-        self.storage = Storage::FaultTolerantProxy.new(storage, notifier: notifier)
-      end
-
-      self.cache ||= Cache::Default.new
-      unless cache.fault_tolerant?
-        self.cache = Cache::FaultTolerantProxy.new(cache, notifier: notifier)
-      end
+      self.storage = Storage::AutoWire.new(storage, notifier: notifier)
+      self.cache = Cache::AutoWire.new(cache, notifier: notifier)
     end
 
     def required
@@ -223,8 +219,6 @@ class Faulty
   #
   # @return [Hash] The circuit options
   def circuit_options
-    options = @options.to_h
-    options.delete(:listeners)
-    options
+    @options.to_h.select { |k, _v| %i[cache storage notifier].include?(k) }
   end
 end
