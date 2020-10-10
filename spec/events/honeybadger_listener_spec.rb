@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'honeybadger/ruby'
+
 RSpec.describe Faulty::Events::HoneybadgerListener do
   before do
     Honeybadger.configure do |c|

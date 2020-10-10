@@ -236,8 +236,6 @@ RSpec.context :circuits do
     after { circuit.reset! }
 
     it_behaves_like 'circuit'
-
-    it 'accepts a connection pool'
   end
 
   context 'with fault-tolerant redis storage' do
