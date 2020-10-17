@@ -29,6 +29,9 @@ Layout/LineLength:
 Layout/MultilineMethodCallIndentation:
   EnforcedStyle: indented
 
+Layout/RescueEnsureAlignment:
+  Enabled: false
+
 Lint/RaiseException:
   Enabled: true
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'byebug'
+require 'byebug' if Gem.loaded_specs['byebug']
 
 if ENV['COVERAGE']
   require 'simplecov'
@@ -15,6 +15,8 @@ end
 
 require 'faulty'
 require 'timecop'
+
+require_relative 'support/concurrency'
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
@@ -31,4 +33,6 @@ RSpec.configure do |config|
   config.after do
     Timecop.return
   end
+
+  config.include Faulty::Specs::Concurrency
 end

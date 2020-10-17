@@ -6,6 +6,8 @@ rvm:
   - 2.5
   - 2.6
   - 2.7
+  - jruby
+  - truffleruby
 
 env:
   global:
@@ -22,8 +24,8 @@ before_script:
   - ./cc-test-reporter before-build
 
 script:
-  - bin/rubocop
-  - bin/rspec --format doc
+  - bundle exec rubocop
+  - bundle exec rspec --format doc
   - bin/check-version
 
 after_script:
