@@ -53,7 +53,7 @@ module Faulty
     #
     # @param ok An ok value
     # @param error [Error] An error instance
-    def initialize(ok: NOTHING, error: NOTHING) # rubocop:disable Naming/MethodParameterName
+    def initialize(ok: NOTHING, error: NOTHING)
       if ok.equal?(NOTHING) && error.equal?(NOTHING)
         raise ArgumentError, 'Result must have an ok or error value'
       end
