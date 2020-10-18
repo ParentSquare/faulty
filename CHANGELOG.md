@@ -1,3 +1,8 @@
+## Release v0.1.4
+
+* Improve spec coverage for supporting classes #6
+* Fix redis bug where concurrent CAS requests could crash #7
+
 ## Release v0.1.3
 
 * Fix bug where memory storage would delete the newest entries #5
