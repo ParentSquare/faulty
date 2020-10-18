@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   module Storage
     class Redis # rubocop:disable Metrics/ClassLength
       # Separates the time/status for history entry strings

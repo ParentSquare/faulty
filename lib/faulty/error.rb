@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   # The base error for all Faulty errors
   class FaultyError < StandardError; end
 
@@ -20,10 +20,10 @@ module Faulty
     end
   end
 
-  # Raised if getting the default scope without initializing one
-  class MissingDefaultScopeError < FaultyError
+  # Raised if getting the default instance without initializing one
+  class MissingDefaultInstanceError < FaultyError
     def initialize(message = nil)
-      message ||= 'No default scope. Create one with init or get your scope with Faulty[:scope_name]'
+      message ||= 'No default instance. Create one with init or get your instance with Faulty[:name]'
       super(message)
     end
   end

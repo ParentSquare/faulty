@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   module Cache
     # A wrapper for a Rails or ActiveSupport cache
     #

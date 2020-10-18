@@ -203,11 +203,12 @@ In addition to the classic circuit breaker design, Faulty implements caching
 that is integrated with the circuit state. See [Caching](#caching) for more
 detail.
 
-## Global Configuration
+## Configuration
 
-`Faulty.init` can set the following global configuration options. This example
-illustrates the default values. It is also possible to define multiple
-non-global configuration scopes (see [Scopes](#scopes)).
+Faulty can be configured with the following configuration options. This example
+illustrates the default values. In the first example, we configure Faulty
+globally. The second example shows the same configuration using an instance of
+Faulty instead of global configuration.
 
 ```ruby
 Faulty.init do |config|
@@ -233,6 +234,25 @@ Faulty.init do |config|
 end
 ```
 
+Here is the same configuration using an instance of `Faulty`. This is a more
+object-oriented approach.
+
+```ruby
+faulty = Faulty.new do |config|
+  config.cache = Faulty::Cache::Default.new
+  config.storage = Faulty::Storage::Memory.new
+  config.listeners = [Faulty::Events::LogListener.new]
+  config.notifier = Faulty::Events::Notifier.new(config.listeners)
+end
+```
+
+Most of the examples in this README use the global Faulty class methods, but
+they work the same way when using an instance. Just substitute your instance
+instead of `Faulty`. There is no preferred way to use Faulty. Choose whichever
+configuration mechanism works best for your application. Also see
+[Multiple Configurations](#multiple-configurations) if your application needs
+to set different options in different scenarios.
+
 For all Faulty APIs that have configuration, you can also pass in an options
 hash. For example, `Faulty.init` could be called like this:
 
@@ -244,9 +264,9 @@ Faulty.init(cache: Faulty::Cache::Null.new)
 
 A circuit can be created with the following configuration options. Those options
 are only set once, synchronized across threads, and will persist in-memory until
-the process exits. If you're using [scopes](#scopes), the options are retained
-within the context of each scope. All options given after the first call to
-`Faulty.circuit` (or `Scope.circuit`) are ignored.
+the process exits. If you're using [multiple configurations](#multiple-configurations),
+the options are retained within the context of each instance. All options given
+after the first call to `Faulty.circuit` (or `Faulty#circuit`) are ignored.
 
 This is because the circuit objects themselves are internally memoized, and are
 read-only once created.
@@ -307,8 +327,8 @@ Faulty.circuit(:api, cache_expires_in: 1800)
 
 Faulty integrates caching into it's circuits in a way that is particularly
 suited to fault-tolerance. To make use of caching, you must specify the `cache`
-configuration option when initializing Faulty or creating a scope. If you're
-using Rails, this is automatically set to the Rails cache.
+configuration option when initializing Faulty or creating a new Faulty instance.
+If you're using Rails, this is automatically set to the Rails cache.
 
 Once your cache is configured, you can use the `cache` parameter when running
 a circuit to specify a cache key:
@@ -480,8 +500,8 @@ end
 ## Listing Circuits
 
 For monitoring or debugging, you may need to retrieve a list of all circuit
-names. This is possible with `Faulty.list_circuits` (or the equivalent method on
-your [scope](#scopes)).
+names. This is possible with `Faulty.list_circuits` (or `Faulty#list_circuits`
+if you're using an instance).
 
 You can get a list of all circuit statuses by mapping those names to their
 status objects. Be careful though, since this could cause performance issues for
@@ -523,73 +543,73 @@ Locking or unlocking a circuit has no concurrency guarantees, so it's not
 recommended to lock or unlock circuits from production code. Instead, locks are
 intended as an emergency tool for troubleshooting and debugging.
 
-## Scopes
+## Multiple Configurations
 
 It is possible to have multiple configurations of Faulty running within the same
-process. The most common configuration is to simply use `Faulty.init` to
+process. The most common setup is to simply use `Faulty.init` to
 configure Faulty globally, however it is possible to have additional
-configurations using scopes.
+configurations.
 
-### The default scope
+### The default instance
 
-When you call `Faulty.init`, you are actually creating the default scope. You
-can access this scope directly by calling `Faulty.default`.
+When you call `Faulty.init`, you are actually creating the default instance of
+`Faulty`. You can access this instance directly by calling `Faulty.default`.
 
 ```ruby
-# We create the default scope
+# We create the default instance
 Faulty.init
 
-# Access the default scope
-scope = Faulty.default
+# Access the default instance
+faulty = Faulty.default
 
-# Alternatively, access the scope by name
-scope = Faulty[:default]
+# Alternatively, access the instance by name
+faulty = Faulty[:default]
 ```
 
-You can rename the default scope if desired:
+You can rename the default instance if desired:
 
 ```ruby
 Faulty.init(:custom_default)
 
-scope = Faulty.default
-scope = Faulty[:custom_default]
+instance = Faulty.default
+instance = Faulty[:custom_default]
 ```
 
-### Multiple Scopes
+### Multiple Instances
 
-If you want multiple scopes, but want global, thread-safe access to
+If you want multiple instance, but want global, thread-safe access to
 them, you can use `Faulty.register`:
 
 ```ruby
-api_scope = Faulty::Scope.new do |config|
+api_faulty = Faulty.new do |config|
   # This accepts the same options as Faulty.init
 end
 
-Faulty.register(:api, api_scope)
+Faulty.register(:api, api_faulty)
 
-# Now access the scope globally
+# Now access the instance globally
 Faulty[:api]
 ```
 
 When you call `Faulty.circuit`, that's the same as calling
-`Faulty.default.circuit`, so you can apply the same API to any other Faulty
-scope:
+`Faulty.default.circuit`, so you can apply the same principal to any other
+registered Faulty instance:
 
 ```ruby
 Faulty[:api].circuit(:api_circuit).run { 'ok' }
 ```
 
-### Standalone Scopes
+### Standalone Instances
 
-If you choose, you can use Faulty scopes without registering them globally. This
-could be useful if you prefer dependency injection over global state.
+If you choose, you can use Faulty instances without registering them globally.
+This is more object-oriented and is necessary if you use dependency injection.
 
 ```ruby
-faulty = Faulty::Scope.new
+faulty = Faulty.new
 faulty.circuit(:standalone_circuit)
 ```
 
-Calling `circuit` on the scope still has the same memoization behavior that
+Calling `#circuit` on the instance still has the same memoization behavior that
 `Faulty.circuit` has, so subsequent calls to the same circuit will return a
 memoized circuit object.
 
@@ -660,7 +680,7 @@ but there are and have been many other options:
 
 - Simple API but configurable for advanced users
 - Pluggable storage backends (circuitbox also has this)
-- Global, or local configuration with scopes
+- Global, or object-oriented configuration with multiple instances
 - Integrated caching support tailored for fault-tolerance
 - Manually lock circuits open or closed
 

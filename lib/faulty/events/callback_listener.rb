@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   module Events
     # A simple listener implementation that uses callback blocks as handlers
     #

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   # A struct that cannot be modified after initialization
   module ImmutableOptions
     # @param hash [Hash] A hash of attributes to initialize with

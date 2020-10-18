@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   module Cache
     # A wrapper for cache backends that may raise errors
     #
-    # {Scope} automatically wraps all non-fault-tolerant cache backends with
+    # {Faulty#initialize} automatically wraps all non-fault-tolerant cache backends with
     # this class.
     #
     # If the cache backend raises a `StandardError`, it will be captured and

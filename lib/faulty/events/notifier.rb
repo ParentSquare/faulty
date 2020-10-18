@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   module Events
     # The default event dispatcher for Faulty
     class Notifier

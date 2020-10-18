@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   module Storage
     # The default in-memory storage for circuits
     #
