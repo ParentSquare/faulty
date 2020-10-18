@@ -97,7 +97,7 @@ module Faulty
       # @return (see Interface#open)
       def open(circuit, opened_at)
         redis do |r|
-          opened = compare_and_set(r, state_key(circuit), ['closed', nil], 'open')
+          opened = compare_and_set(r, state_key(circuit), ['closed', nil], 'open', ex: options.circuit_ttl)
           r.set(opened_at_key(circuit), opened_at, ex: options.circuit_ttl) if opened
           opened
         end
@@ -110,7 +110,7 @@ module Faulty
       # @return (see Interface#reopen)
       def reopen(circuit, opened_at, previous_opened_at)
         redis do |r|
-          compare_and_set(r, opened_at_key(circuit), [previous_opened_at.to_s], opened_at)
+          compare_and_set(r, opened_at_key(circuit), [previous_opened_at.to_s], opened_at, ex: options.circuit_ttl)
         end
       end
 
@@ -121,7 +121,7 @@ module Faulty
       # @return (see Interface#close)
       def close(circuit)
         redis do |r|
-          closed = compare_and_set(r, state_key(circuit), ['open'], 'closed')
+          closed = compare_and_set(r, state_key(circuit), ['open'], 'closed', ex: options.circuit_ttl)
           r.del(entries_key(circuit)) if closed
           closed
         end
@@ -287,10 +287,10 @@ module Faulty
       # @param new [String] The new value to set if the compare passes
       # @return [Boolean] True if the value was set to `new`, false if the CAS
       #   failed
-      def compare_and_set(redis, key, old, new)
+      def compare_and_set(redis, key, old, new, ex:)
         redis.watch(key) do
           if old.include?(redis.get(key))
-            result = redis.multi { |m| m.set(key, new) }
+            result = redis.multi { |m| m.set(key, new, ex: ex) }
             result && result[0] == 'OK'
           else
             redis.unwatch

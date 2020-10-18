@@ -62,6 +62,9 @@ Metrics/BlockLength:
 Metrics/MethodLength:
   Max: 30
 
+Naming/MethodParameterName:
+  MinNameLength: 1
+
 Style/Documentation:
   Enabled: false
 
