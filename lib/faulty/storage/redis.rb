@@ -288,15 +288,15 @@ module Faulty
       # @return [Boolean] True if the value was set to `new`, false if the CAS
       #   failed
       def compare_and_set(redis, key, old, new)
-        result = redis.watch(key) do
+        redis.watch(key) do
           if old.include?(redis.get(key))
-            redis.multi { |m| m.set(key, new) }
+            result = redis.multi { |m| m.set(key, new) }
+            result && result[0] == 'OK'
           else
             redis.unwatch
+            false
           end
         end
-
-        result[0] == 'OK'
       end
 
       # Yield a Redis connection
