@@ -1,3 +1,12 @@
+## Release v0.2.0
+
+* Remove Scopes and replace them with Faulty instances #9
+
+### Breaking Changes
+
+* `Faulty::Scope` has been removed. Use `Faulty.new` instead.
+* `Faulty` is now a class, not a module
+
 ## Release v0.1.5
 
 * Fix redis storage to expire state key when using CAS #8
