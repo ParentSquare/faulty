@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   # An approximation of the `Result` type from some strongly-typed languages.
   #
   # F#: https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/results

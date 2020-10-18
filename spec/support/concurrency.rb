@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   module Specs
     module Concurrency
       def concurrent_warmup(&block)

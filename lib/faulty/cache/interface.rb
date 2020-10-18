@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   module Cache
     # The interface required for a cache backend implementation
     #

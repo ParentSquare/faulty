@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   # Runs code protected by a circuit breaker
   #
   # https://www.martinfowler.com/bliki/CircuitBreaker.html

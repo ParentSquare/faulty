@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   # The namespace for Faulty events and event listeners
   module Events
     # All possible events that can be raised by Faulty

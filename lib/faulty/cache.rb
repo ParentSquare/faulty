@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   # The namespace for Faulty caching
   module Cache
   end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   # The status of a circuit
   #
   # Includes information like the state and locks. Also calculates

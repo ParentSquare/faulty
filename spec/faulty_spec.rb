@@ -1,21 +1,23 @@
 # frozen_string_literal: true
 
 RSpec.describe Faulty do
+  subject(:instance) { described_class.new(listeners: []) }
+
   after do
     # Reset the global Faulty instance
     # We don't want to expose a public method to do this
     # because it could cause concurrency errors, and confusion about what
     # exactly gets reset
-    described_class.instance_variable_set(:@scopes, nil)
-    described_class.instance_variable_set(:@default_scope, nil)
+    described_class.instance_variable_set(:@instances, nil)
+    described_class.instance_variable_set(:@default_instance, nil)
   end
 
   it 'can be initialized with no args' do
     described_class.init
-    expect(described_class.default).to be_a(Faulty::Scope)
+    expect(described_class.default).to be_a(described_class)
   end
 
-  it 'gets options from the default scope' do
+  it 'gets options from the default instance' do
     described_class.init
     expect(described_class.options).to eq(described_class.default.options)
   end
@@ -24,14 +26,14 @@ RSpec.describe Faulty do
     expect { described_class.default }.to raise_error(Faulty::UninitializedError)
   end
 
-  it '#default raises missing scope error if default not created' do
+  it '#default raises missing instance error if default not created' do
     described_class.init(nil)
-    expect { described_class.default }.to raise_error(Faulty::MissingDefaultScopeError)
+    expect { described_class.default }.to raise_error(Faulty::MissingDefaultInstanceError)
   end
 
-  it 'can rename the default scope on #init' do
+  it 'can rename the default instance on #init' do
     described_class.init(:foo)
-    expect(described_class.default).to be_a(Faulty::Scope)
+    expect(described_class.default).to be_a(described_class)
     expect(described_class[:foo]).to eq(described_class.default)
   end
 
@@ -40,36 +42,36 @@ RSpec.describe Faulty do
     described_class.init
   end
 
-  it 'registers a named scope' do
+  it 'registers a named instance' do
     described_class.init
-    scope = Faulty::Scope.new
-    described_class.register(:new_scope, scope)
-    expect(described_class[:new_scope]).to eq(scope)
+    instance = described_class.new
+    described_class.register(:new_instance, instance)
+    expect(described_class[:new_instance]).to eq(instance)
   end
 
-  it 'registers a named scope without default' do
+  it 'registers a named instance without default' do
     described_class.init(nil)
-    scope = Faulty::Scope.new
-    described_class.register(:new_scope, scope)
-    expect(described_class[:new_scope]).to eq(scope)
+    instance = described_class.new
+    described_class.register(:new_instance, instance)
+    expect(described_class[:new_instance]).to eq(instance)
   end
 
-  it 'memoizes named scopes' do
+  it 'memoizes named instances' do
     described_class.init
-    scope1 = Faulty::Scope.new
-    scope2 = Faulty::Scope.new
-    expect(described_class.register(:named, scope1)).to eq(nil)
-    expect(described_class.register(:named, scope2)).to eq(scope1)
-    expect(described_class[:named]).to eq(scope1)
+    instance1 = described_class.new
+    instance2 = described_class.new
+    expect(described_class.register(:named, instance1)).to eq(nil)
+    expect(described_class.register(:named, instance2)).to eq(instance1)
+    expect(described_class[:named]).to eq(instance1)
   end
 
-  it 'delegates circuit to the default scope' do
+  it 'delegates circuit to the default instance' do
     described_class.init(listeners: [])
     described_class.circuit('test').run { 'ok' }
     expect(described_class.default.list_circuits).to eq(['test'])
   end
 
-  it 'lists the circuits from the default scope' do
+  it 'lists the circuits from the default instance' do
     described_class.init(listeners: [])
     described_class.circuit('test').run { 'ok' }
     expect(described_class.list_circuits).to eq(['test'])
@@ -78,5 +80,46 @@ RSpec.describe Faulty do
   it 'gets the current timestamp' do
     Timecop.freeze(Time.new(2020, 1, 1, 0, 0, 0, '+00:00'))
     expect(described_class.current_time).to eq(1_577_836_800)
+  end
+
+  it 'memoizes circuits' do
+    expect(instance.circuit('test')).to eq(instance.circuit('test'))
+  end
+
+  it 'keeps options passed to the first instance and ignores others' do
+    instance.circuit('test', cool_down: 404)
+    expect(instance.circuit('test', cool_down: 302).options.cool_down).to eq(404)
+  end
+
+  it 'converts symbol names to strings' do
+    expect(instance.circuit(:test)).to eq(instance.circuit('test'))
+  end
+
+  it 'lists circuit names' do
+    instance.circuit('test1').run { 'ok' }
+    instance.circuit('test2').run { 'ok' }
+    expect(instance.list_circuits).to match_array(%w[test1 test2])
+  end
+
+  it 'does not wrap fault-tolerant storage' do
+    storage = Faulty::Storage::Memory.new
+    instance = described_class.new(storage: storage)
+    expect(instance.options.storage).to equal(storage)
+  end
+
+  it 'does not wrap fault-tolerant cache' do
+    cache = Faulty::Cache::Null.new
+    instance = described_class.new(cache: cache)
+    expect(instance.options.cache).to equal(cache)
+  end
+
+  it 'wraps non-fault-tolerant storage in FaultTolerantProxy' do
+    instance = described_class.new(storage: Faulty::Storage::Redis.new)
+    expect(instance.options.storage).to be_a(Faulty::Storage::FaultTolerantProxy)
+  end
+
+  it 'wraps non-fault-tolerant cache in FaultTolerantProxy' do
+    instance = described_class.new(cache: Faulty::Cache::Rails.new(nil))
+    expect(instance.options.cache).to be_a(Faulty::Cache::FaultTolerantProxy)
   end
 end

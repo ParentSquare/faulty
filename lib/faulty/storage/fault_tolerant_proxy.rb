@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-module Faulty
+class Faulty
   module Storage
     # A wrapper for storage backends that may raise errors
     #
-    # {Scope} automatically wraps all non-fault-tolerant storage backends with
+    # {Faulty#initialize} automatically wraps all non-fault-tolerant storage backends with
     # this class.
     #
     # If the storage backend raises a `StandardError`, it will be captured and
