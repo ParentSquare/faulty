@@ -1,3 +1,7 @@
+## Release v0.1.5
+
+* Fix redis storage to expire state key when using CAS #8
+
 ## Release v0.1.4
 
 * Improve spec coverage for supporting classes #6
