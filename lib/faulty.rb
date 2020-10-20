@@ -4,6 +4,7 @@ require 'securerandom'
 require 'concurrent-ruby'
 
 require 'faulty/immutable_options'
+require 'faulty/circuit_delegator'
 require 'faulty/cache'
 require 'faulty/circuit'
 require 'faulty/error'
