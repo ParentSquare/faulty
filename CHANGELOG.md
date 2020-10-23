@@ -1,3 +1,12 @@
+## Release v0.3.0
+
+* Add tools for backend fault-tolerance #10
+  * CircuitProxy for wrapping storage in an internal circuit
+  * FallbackChain storage backend for falling back to stable storage
+  * Timeout warnings for Redis backend
+  * AutoWire wrappers for automatically configuring storage and cache
+  * Better documentation for fault-tolerance
+
 ## Release v0.2.0
 
 * Remove Scopes and replace them with Faulty instances #9
