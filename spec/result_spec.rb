@@ -41,4 +41,16 @@ RSpec.describe Faulty::Result do
   it 'does not confuse NOTHING with empty object' do
     expect(described_class.new(ok: {}).ok?).to eq(true)
   end
+
+  it 'with ok #or_default passes value through' do
+    expect(ok.or_default('fallback')).to eq('foo')
+  end
+
+  it 'with error #or_default returns alternate from argument' do
+    expect(error.or_default('fallback')).to eq('fallback')
+  end
+
+  it 'with error #or_default returns alternate from block' do
+    expect(error.or_default { 'fallback' }).to eq('fallback')
+  end
 end

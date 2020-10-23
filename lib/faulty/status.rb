@@ -144,9 +144,10 @@ class Faulty
 
     def finalize
       raise ArgumentError, "state must be a symbol in #{self.class}::STATES" unless STATES.include?(state)
-      unless lock.nil? || LOCKS.include?(state)
+      unless lock.nil? || LOCKS.include?(lock)
         raise ArgumentError, "lock must be a symbol in #{self.class}::LOCKS or nil"
       end
+      raise ArgumentError, 'opened_at is required if state is open' if state == :open && opened_at.nil?
     end
 
     def required

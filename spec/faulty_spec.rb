@@ -26,6 +26,11 @@ RSpec.describe Faulty do
     expect { described_class.default }.to raise_error(Faulty::UninitializedError)
   end
 
+  it 'raises error when initialized twice' do
+    described_class.init
+    expect { described_class.init }.to raise_error(Faulty::AlreadyInitializedError)
+  end
+
   it '#default raises missing instance error if default not created' do
     described_class.init(nil)
     expect { described_class.default }.to raise_error(Faulty::MissingDefaultInstanceError)

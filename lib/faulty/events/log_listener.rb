@@ -72,11 +72,10 @@ class Faulty
       end
 
       def storage_failure(payload)
-        log(
-          :error, 'Storage failure', payload[:action],
-          circuit: payload[:circuit]&.name,
-          error: payload[:error].message
-        )
+        extra = {}
+        extra[:circuit] = payload[:circuit].name if payload.key?(:circuit)
+        extra[:error] = payload[:error].message
+        log(:error, 'Storage failure', payload[:action], extra)
       end
 
       def log(level, msg, action, extra = {})
