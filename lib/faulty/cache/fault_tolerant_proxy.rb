@@ -8,7 +8,8 @@ class Faulty
     # this class.
     #
     # If the cache backend raises a `StandardError`, it will be captured and
-    # sent to the notifier.
+    # sent to the notifier. Reads errors will return `nil`, and writes will be
+    # a no-op.
     class FaultTolerantProxy
       attr_reader :options
 
@@ -36,6 +37,16 @@ class Faulty
         @options = Options.new(options, &block)
       end
 
+      # Wrap a cache in a FaultTolerantProxy unless it's already fault tolerant
+      #
+      # @param cache [Cache::Interface] The cache to maybe wrap
+      # @return [Cache::Interface] The original cache or a {FaultTolerantProxy}
+      def self.wrap(cache, **options, &block)
+        return cache if cache.fault_tolerant?
+
+        new(cache, **options, &block)
+      end
+
       # Read from the cache safely
       #
       # If the backend raises a `StandardError`, this will return `nil`.
@@ -58,7 +69,7 @@ class Faulty
       # @return [void]
       def write(key, value, expires_in: nil)
         @cache.write(key, value, expires_in: expires_in)
-      rescue StandardError
+      rescue StandardError => e
         options.notifier.notify(:cache_failure, key: key, action: :write, error: e)
         nil
       end

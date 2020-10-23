@@ -66,14 +66,19 @@ class Faulty
     #   @return [Error, Array<Error>] An array of errors that are considered circuit
     #     failures. Default `[StandardError]`.
     # @!attribute [r] exclude
-    #   @return [Error, Array<Error>] An array of errors that will be captured and
-    #     considered circuit failures. Default `[]`.
+    #   @return [Error, Array<Error>] An array of errors that will not be
+    #     captured by Faulty. These errors will not be considered circuit
+    #     failures. Default `[]`.
     # @!attribute [r] cache
-    #   @return [Cache::Interface] The cache backend. Default `Cache::Null.new`
+    #   @return [Cache::Interface] The cache backend. Default
+    #   `Cache::Null.new`. Unlike {Faulty#initialize}, this is not wrapped in
+    #   {Cache::AutoWire} by default.
     # @!attribute [r] notifier
     #   @return [Events::Notifier] A Faulty notifier. Default `Events::Notifier.new`
     # @!attribute [r] storage
-    #   @return [Storage::Interface] The storage backend. Default `Storage::Memory.new`
+    #   @return [Storage::Interface] The storage backend. Default
+    #   `Storage::Memory.new`. Unlike {Faulty#initialize}, this is not wrapped
+    #    in {Storage::AutoWire} by default.
     Options = Struct.new(
       :cache_expires_in,
       :cache_refreshes_after,

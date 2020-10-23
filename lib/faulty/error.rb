@@ -59,8 +59,22 @@ class Faulty
   # Raised if calling get or error on a result without checking it
   class UncheckedResultError < FaultyError; end
 
+  # An error that wraps multiple other errors
+  class FaultyMultiError < FaultyError
+    def initialize(message, errors)
+      message = "#{message}: #{errors.map(&:message).join(', ')}"
+      super(message)
+    end
+  end
+
   # Raised if getting the wrong result type.
   #
   # For example, calling get on an error result will raise this
   class WrongResultError < FaultyError; end
+
+  # Raised if a FallbackChain partially fails
+  class PartialFailureError < FaultyMultiError; end
+
+  # Raised if all FallbackChain backends fail
+  class AllFailedError < FaultyMultiError; end
 end

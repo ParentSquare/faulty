@@ -101,25 +101,13 @@ RSpec.describe Faulty do
     expect(instance.list_circuits).to match_array(%w[test1 test2])
   end
 
-  it 'does not wrap fault-tolerant storage' do
-    storage = Faulty::Storage::Memory.new
-    instance = described_class.new(storage: storage)
-    expect(instance.options.storage).to equal(storage)
-  end
-
-  it 'does not wrap fault-tolerant cache' do
-    cache = Faulty::Cache::Null.new
-    instance = described_class.new(cache: cache)
-    expect(instance.options.cache).to equal(cache)
-  end
-
-  it 'wraps non-fault-tolerant storage in FaultTolerantProxy' do
+  it 'wraps non-fault-tolerant storage in AutoWire' do
     instance = described_class.new(storage: Faulty::Storage::Redis.new)
-    expect(instance.options.storage).to be_a(Faulty::Storage::FaultTolerantProxy)
+    expect(instance.options.storage).to be_a(Faulty::Storage::AutoWire)
   end
 
-  it 'wraps non-fault-tolerant cache in FaultTolerantProxy' do
+  it 'wraps non-fault-tolerant cache in AutoWire' do
     instance = described_class.new(cache: Faulty::Cache::Rails.new(nil))
-    expect(instance.options.cache).to be_a(Faulty::Cache::FaultTolerantProxy)
+    expect(instance.options.cache).to be_a(Faulty::Cache::AutoWire)
   end
 end
