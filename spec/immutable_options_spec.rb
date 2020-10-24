@@ -49,8 +49,11 @@ RSpec.describe Faulty::ImmutableOptions do
     expect { example_class.new(name: nil) }.to raise_error(ArgumentError, /Missing required attribute name/)
   end
 
-  it 'freezes options after initialization' do
-    opts = example_class.new(name: 'foo')
-    expect { opts.name = 'bar' }.to raise_error(/can\'t modify frozen/)
+  # truffleruby does not freeze objects
+  if defined?(RUBY_ENGINE) && RUBY_ENGINE != 'truffleruby'
+    it 'freezes options after initialization' do
+      opts = example_class.new(name: 'foo')
+      expect { opts.name = 'bar' }.to raise_error(/can\'t modify frozen/)
+    end
   end
 end
