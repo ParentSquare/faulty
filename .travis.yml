@@ -6,8 +6,8 @@ rvm:
   - 2.5
   - 2.6
   - 2.7
-  - jruby
-  - truffleruby
+  - jruby-9.2.10
+  - truffleruby-20.2.0
 
 env:
   global:
