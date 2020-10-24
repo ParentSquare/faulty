@@ -51,6 +51,6 @@ RSpec.describe Faulty::ImmutableOptions do
 
   it 'freezes options after initialization' do
     opts = example_class.new(name: 'foo')
-    expect { opts.name = 'bar' }.to raise_error(FrozenError)
+    expect { opts.name = 'bar' }.to raise_error(/can\'t modify frozen/)
   end
 end
