@@ -8,11 +8,91 @@
 
 Fault-tolerance tools for ruby based on [circuit-breakers][martin fowler].
 
+**Without Faulty**
+
+External dependencies like APIs can start failing at any time When they do, it
+could cause cascading failures in your application.
+
 ```ruby
-users = Faulty.circuit(:api).try_run do
-  api.users
-end.or_default([])
+api.users
 ```
+
+**With Faulty**
+
+Faulty monitors errors inside this block and will "trip" a circuit if your
+threshold is passed. Once a circuit is tripped, Faulty stops executing this
+block until it recovers. Your application can detect external failures, and
+prevent their effects from degrading overall performance.
+
+```ruby
+users = Faulty.circuit('api').try_run do
+
+  # If this raises an exception, it counts towards the failure rate
+  # The exceptions that count as failures are configurable
+  # All failures will be sent to your event listeners for monitoring
+  api.users
+
+end.or_default([])
+# Here we return a stubbed value so the app can continue to function
+# Another strategy is just to re-raise the exception so the app can handle it
+# or use its default error handler
+```
+
+See [What is this for?](#what-is-this-for) for a more detailed explanation.
+Also see "Release It!: Design and Deploy Production-Ready Software" by
+[Michael T. Nygard][michael nygard] and the
+[Martin Fowler Article][martin fowler] post on circuit breakers.
+
+## Contents
+
+* [Contents](#contents)
+* [Installation](#installation)
+* [API Docs](#api-docs)
+* [Setup](#setup)
+* [Basic Usage](#basic-usage)
+* [What is this for?](#what-is-this-for-)
+* [Configuration](#configuration)
+  + [Configuring the Storage Backend](#configuring-the-storage-backend)
+    - [Memory](#memory)
+    - [Redis](#redis)
+    - [FallbackChain](#fallbackchain)
+    - [Storage::FaultTolerantProxy](#storage--faulttolerantproxy)
+    - [Storage::CircuitProxy](#storage--circuitproxy)
+  + [Configuring the Cache Backend](#configuring-the-cache-backend)
+    - [Null](#null)
+    - [Rails](#rails)
+    - [Cache::FaultTolerantProxy](#cache--faulttolerantproxy)
+    - [Cache::CircuitProxy](#cache--circuitproxy)
+  + [Multiple Configurations](#multiple-configurations)
+    - [The default instance](#the-default-instance)
+    - [Multiple Instances](#multiple-instances)
+    - [Standalone Instances](#standalone-instances)
+* [Working with circuits](#working-with-circuits)
+  + [Running a Circuit](#running-a-circuit)
+    - [With Exceptions](#with-exceptions)
+    - [With Faulty::Result](#with-faulty--result)
+  + [Specifying the Captured Errors](#specifying-the-captured-errors)
+  + [Using the Cache](#using-the-cache)
+  + [Configuring the Circuit Threshold](#configuring-the-circuit-threshold)
+    - [Rate Threshold](#rate-threshold)
+    - [Sample Threshold](#sample-threshold)
+    - [Cool Down](#cool-down)
+  + [Circuit Options](#circuit-options)
+  + [Listing Circuits](#listing-circuits)
+  + [Locking Circuits](#locking-circuits)
+* [Event Handling](#event-handling)
+  + [CallbackListener](#callbacklistener)
+  + [Other Built-in Listeners](#other-built-in-listeners)
+  + [Custom Listeners](#custom-listeners)
+* [How it Works](#how-it-works)
+  + [Caching](#caching)
+  + [Fault Tolerance](#fault-tolerance)
+* [Implementing a Cache Backend](#implementing-a-cache-backend)
+* [Implementing a Storage Backend](#implementing-a-storage-backend)
+* [Alternatives](#alternatives)
+  + [Currently Active](#currently-active)
+  + [Previous Work](#previous-work)
+  + [Faulty's Unique Features](#faulty-s-unique-features)
 
 ## Installation
 
@@ -64,53 +144,16 @@ Faulty.init do |config|
 end
 ```
 
+Or use a faulty instance instead for an object-oriented approach
+
+```ruby
+faulty = Faulty.new do
+  config.storage = Faulty::Storage::Redis.new
+end
+```
+
 For a full list of configuration options, see the
-[Global Configuration](#global-configuration) section.
-
-## What is this for?
-
-Circuit breakers are a fault-tolerance tool for creating separation between your
-application and external dependencies. For example, your application may call an
-external API to send a text message:
-
-```ruby
-TextApi.send(message)
-```
-
-In normal operation, this API call is very fast. However what if the texting
-service started hanging? Your application would quickly use up a lot of
-resources waiting for requests to return from the service. You could consider
-adding a timeout to your request:
-
-```ruby
-TextApi.send(message, timeout: 5)
-```
-
-Now your application will terminate requests after 5 seconds, but that could
-still add up to a lot of resources if you call this thousands of times. Circuit
-breakers solve this problem.
-
-```ruby
-Faulty.circuit(:text_api).run do
-  TextApi.send(message, timeout: 5)
-end
-```
-
-Now, when the text API hangs, the first few will run and start timing out. This
-will trip the circuit. After the circuit trips
-(see [How it Works](#how-it-works)), calls to the text API will be paused for
-the configured cool down period. Your application resources are not overwhelmed.
-
-You are free to implement a fallback or error handling however you wish, for
-example, in this case, you might add the text message to a failure queue:
-
-```ruby
-Faulty.circuit(:text_api).run do
-  TextApi.send(message, timeout: 5)
-rescue Faulty::CircuitError => e
-  FailureQueue.enqueue(message)
-end
-```
+[Configuration](#configuration) section.
 
 ## Basic Usage
 
@@ -119,11 +162,11 @@ circuit, or you can set it up beforehand. Any options passed to the `circuit`
 method are synchronized across threads and saved as long as the process is alive.
 
 ```ruby
-circuit1 = Faulty.circuit(:api, cache_refreshes_after: 1800)
+circuit1 = Faulty.circuit(:api, rate_threshold: 0.6)
 
 # The options from above are also used when called here
 circuit2 = Faulty.circuit(:api)
-circuit2.options.cache_refreshes_after == 1800 # => true
+circuit2.options.rate_threshold == 0.6 # => true
 
 # The same circuit is returned on each consecutive call
 circuit1.equal?(circuit2) # => true
@@ -170,40 +213,54 @@ users = Faulty.circuit(:api).try_run do
 end.or_default([])
 ```
 
-## How it Works
+See [Running a Circuit](#running-a-circuit) for more in-depth examples. Also,
+make sure you have proper [Event Handlers](#event-handling) setup so that you
+can monitor your circuits for failures.
 
-Faulty implements a version of circuit breakers inspired by "Release It!: Design
-and Deploy Production-Ready Software" by [Michael T. Nygard][michael nygard] and
-[Martin Fowler's post][martin fowler] on the subject. A few notable features of
-Faulty's implementation are:
+## What is this for?
 
-- Rate-based failure thresholds
-- Integrated caching inspired by Netflix's [Hystrix][hystrix] with automatic
-  cache jitter and error fallback.
-- Event-based monitoring
-- Flexible fault-tolerant storage with optional fallbacks
+Circuit breakers are a fault-tolerance tool for creating separation between your
+application and external dependencies. For example, your application may call an
+external API to send a text message:
 
-Following the principals of the circuit-breaker pattern, the block given to
-`run` or `try_run` will always be executed as long as it never raises an error.
-If the block _does_ raise an error, then the circuit keeps track of the number
-of runs and the failure rate.
+```ruby
+TextApi.send(message)
+```
 
-Once both thresholds are breached, the circuit is opened. Once open, the
-circuit starts the cool-down period. Any executions within that cool-down are
-skipped, and a `Faulty::OpenCircuitError` will be raised.
+In normal operation, this API call is very fast. However what if the texting
+service started hanging? Your application would quickly use up a lot of
+resources waiting for requests to return from the service. You could consider
+adding a timeout to your request:
 
-After the cool-down has elapsed, the circuit enters the half-open state. In this
-state, Faulty allows a single execution of the block as a test run. If the test
-run succeeds, the circuit is fully opened and the circuit state is reset. If the
-test run fails, the circuit is closed and the cool-down is reset.
+```ruby
+TextApi.send(message, timeout: 5)
+```
 
-Each time the circuit changes state or executes the block, events are raised
-that are sent to the Faulty event notifier. The notifier should be used to track
-circuit failure rates, open circuits, etc.
+Now your application will terminate requests after 5 seconds, but that could
+still add up to a lot of resources if you call this thousands of times. Circuit
+breakers solve this problem.
 
-In addition to the classic circuit breaker design, Faulty implements caching
-that is integrated with the circuit state. See [Caching](#caching) for more
-detail.
+```ruby
+Faulty.circuit('text_api').run do
+  TextApi.send(message, timeout: 5)
+end
+```
+
+Now, when the text API hangs, the first few will run and start timing out. This
+will trip the circuit. After the circuit trips
+(see [How it Works](#how-it-works)), calls to the text API will be paused for
+the configured cool down period. Your application resources are not overwhelmed.
+
+You are free to implement a fallback or error handling however you wish, for
+example, in this case, you might add the text message to a failure queue:
+
+```ruby
+Faulty.circuit('text_api').run do
+  TextApi.send(message, timeout: 5)
+rescue Faulty::CircuitError => e
+  FailureQueue.enqueue(message)
+end
+```
 
 ## Configuration
 
@@ -269,7 +326,439 @@ hash. For example, `Faulty.init` could be called like this:
 Faulty.init(cache: Faulty::Cache::Null.new)
 ```
 
-## Circuit Options
+### Configuring the Storage Backend
+
+A storage backend is required to use Faulty. By default, it uses in-memory
+storage, but Redis is also available, along with a number of wrappers used to
+improve resiliency and fault-tolerance.
+
+#### Memory
+
+The `Faulty::Storage::Memory` backend is the default storage backend. You may
+prefer this implementation if you want to avoid the complexity and potential
+failure-mode of cross-network circuit storage. The trade-off is that circuit
+state is only contained within a single process and will not be saved across
+application restarts. Locks will also be cleared on restart.
+
+The default configuration:
+
+```ruby
+Faulty.init do |config|
+  config.storage = Faulty::Storage::Memory.new do |storage|
+    # The maximum number of circuit runs that will be stored
+    storage.max_sample_size = 100
+  end
+end
+```
+
+#### Redis
+
+The `Faulty::Storage::Redis` backend provides distributed circuit storage using
+Redis. Although Faulty takes steps to reduce risk
+(See [Fault Tolerance](#fault-tolerance)), using cross-network storage does
+introduce some additional failure modes. To reduce this risk, be sure to set
+conservative timeouts for your Redis connection. Setting high timeouts will
+print warnings to stderr.
+
+The default configuration:
+
+```ruby
+Faulty.init do |config|
+  config.storage = Faulty::Storage::Redis.new do |storage|
+    # The Redis client. Accepts either a Redis instance, or a ConnectionPool
+    # of Redis instances. A low timeout is highly recommended to prevent
+    # cascading failures when evaluating circuits.
+    storage.client = ::Redis.new(timeout: 1)
+
+    # The prefix to prepend to all redis keys used by Faulty circuits
+    storage.key_prefix = 'faulty'
+
+    # A string to separate the parts of the redis key
+    storage.key_separator = ':'
+
+    # The maximum number of circuit runs that will be stored
+    storage.max_sample_size = 100
+
+    # The maximum number of seconds that a circuit run will be stored
+    storage.sample_ttl = 1800
+
+    # The maximum number of seconds to store a circuit. Does not apply to
+    # locks, which are indefinite.
+    storage.circuit_ttl = 604_800 # 1 Week
+
+    # The number of seconds between circuit expirations. Changing this setting
+    # is not recommended. See API docs for more implementation details.
+    storage.list_granularity = 3600
+
+    # If true, disables warnings about recommended client settings like timeouts
+    storage.disable_warnings = false
+  end
+end
+```
+
+#### FallbackChain
+
+The `Faulty::Storage::FallbackChain` backend is a wrapper for multiple
+prioritized storage backends. If the first backend in the chain fails,
+consecutive backends are tried until one succeeds. The recommended use-case for
+this is to fall back on reliable storage if a networked storage backend fails.
+
+For example, you may configure Redis as your primary storage backend, with an
+in-memory storage backend as a fallback:
+
+```ruby
+Faulty.init do |config|
+  config.storage = Faulty::Storage::FallbackChain.new([
+    Faulty::Storage::Redis.new,
+    Faulty::Storage::Memory.new
+  ])
+end
+```
+
+Faulty instances will automatically use a fallback chain if an array is given to
+the `storage` option, so this example is equivalent to the above:
+
+```ruby
+Faulty.init do |config|
+  config.storage = [
+    Faulty::Storage::Redis.new,
+    Faulty::Storage::Memory.new
+  ]
+end
+```
+
+If the fallback chain fails-over to backup storage, circuit states will not
+carry over, so failover could be temporarily disruptive to your application.
+However, any calls to `#lock` or `#unlock` will always be persisted to all
+backends so that locks are maintained during failover.
+
+#### Storage::FaultTolerantProxy
+
+This wrapper is applied to all non-fault-tolerant storage backends by default
+(see the [API docs for `Faulty::Storage::AutoWire`](https://www.rubydoc.info/gems/faulty/Faulty/Storage/AutoWire)).
+
+`Faulty::Storage::FaultTolerantProxy` is a wrapper that suppresses storage
+errors and returns sensible defaults during failures. If a storage backend is
+failing, all circuits will be treated as closed regardless of locks or previous
+history.
+
+If you wish your application to use a secondary storage backend instead of
+failing closed, use `FallbackChain`.
+
+#### Storage::CircuitProxy
+
+This wrapper is applied to all non-fault-tolerant storage backends by default
+(see the [API docs for `Faulty::Storage::AutoWire`](https://www.rubydoc.info/gems/faulty/Faulty/Cache/AutoWire)).
+
+`Faulty::Storage::CircuitProxy` is a wrapper that uses an independent in-memory
+circuit to track failures to storage backends. If a storage backend fails
+continuously, it will be temporarily disabled and raise `Faulty::CircuitError`s.
+
+Typically this is used inside a `FaultTolerantProxy` or `FallbackChain` so that
+these storage failures are handled gracefully.
+
+### Configuring the Cache Backend
+
+#### Null
+
+The `Faulty::Cache::Null` cache disables caching. It is the default if Rails and
+ActiveSupport are not present.
+
+#### Rails
+
+`Faulty::Cache::Rails` is the default cache if Rails or ActiveSupport are
+present. If Rails is present, it uses `Rails.cache` as the backend. If
+ActiveSupport is present, but Rails is not, it creates a new
+`ActiveSupport::Cache::MemoryStore` by default.  This backend can be used with
+any `ActiveSupport::Cache`.
+
+```ruby
+Faulty.init do |config|
+  config.cache = Faulty::Cache::Rails.new(
+    ActiveSupport::Cache::RedisCacheStore.new
+  )
+end
+```
+
+#### Cache::FaultTolerantProxy
+
+This wrapper is applied to all non-fault-tolerant cache backends by default
+(see the API docs for `Faulty::Cache::AutoWire`).
+
+`Faulty::Cache::FaultTolerantProxy` is a wrapper that suppresses cache errors
+and acts like a null cache during failures. Reads always return `nil`, and
+writes are no-ops.
+
+#### Cache::CircuitProxy
+
+This wrapper is applied to all non-fault-tolerant circuit backends by default
+(see the API docs for `Faulty::Circuit::AutoWire`).
+
+`Faulty::Circuit::CircuitProxy` is a wrapper that uses an independent in-memory
+circuit to track failures to circuit backends. If a circuit backend fails
+continuously, it will be temporarily disabled and raise `Faulty::CircuitError`s.
+
+Typically this is used inside a `FaultTolerantProxy` so that these cache
+failures are handled gracefully.
+
+### Multiple Configurations
+
+It is possible to have multiple configurations of Faulty running within the same
+process. The most common setup is to simply use `Faulty.init` to
+configure Faulty globally, however it is possible to have additional
+configurations.
+
+#### The default instance
+
+When you call `Faulty.init`, you are actually creating the default instance of
+`Faulty`. You can access this instance directly by calling `Faulty.default`.
+
+```ruby
+# We create the default instance
+Faulty.init
+
+# Access the default instance
+faulty = Faulty.default
+
+# Alternatively, access the instance by name
+faulty = Faulty[:default]
+```
+
+You can rename the default instance if desired:
+
+```ruby
+Faulty.init(:custom_default)
+
+instance = Faulty.default
+instance = Faulty[:custom_default]
+```
+
+#### Multiple Instances
+
+If you want multiple instance, but want global, thread-safe access to
+them, you can use `Faulty.register`:
+
+```ruby
+api_faulty = Faulty.new do |config|
+  # This accepts the same options as Faulty.init
+end
+
+Faulty.register(:api, api_faulty)
+
+# Now access the instance globally
+Faulty[:api]
+```
+
+When you call `Faulty.circuit`, that's the same as calling
+`Faulty.default.circuit`, so you can apply the same principal to any other
+registered Faulty instance:
+
+```ruby
+Faulty[:api].circuit('api_circuit').run { 'ok' }
+```
+
+#### Standalone Instances
+
+If you choose, you can use Faulty instances without registering them globally.
+This is more object-oriented and is necessary if you use dependency injection.
+
+```ruby
+faulty = Faulty.new
+faulty.circuit('standalone_circuit')
+```
+
+Calling `#circuit` on the instance still has the same memoization behavior that
+`Faulty.circuit` has, so subsequent calls to the same circuit will return a
+memoized circuit object.
+
+
+## Working with circuits
+
+A circuit can be created by calling the `#circuit` method on `Faulty`, or on
+your Faulty instance:
+
+```ruby
+# With global Faulty configuration
+circuit = Faulty.circuit('api')
+
+# Or with a Faulty instance
+circuit = faulty.circuit('api')
+```
+
+### Running a Circuit
+
+You can handle circuit errors either with exceptions, or with a Faulty `Result`.
+They both have the same behavior, but you can choose whatever syntax is more
+convenient for your use-case.
+
+#### With Exceptions
+
+If we want exceptions to be raised, we use the `#run` method. This does not
+suppress exceptions, only monitors them. If `api.users` raises an exception
+here, it will bubble up to the caller. The exception will be a sub-class of
+`Faulty::CircuitError`, and the error `cause` will be the original error object.
+
+```ruby
+begin
+  Faulty.circuit('api').run do
+    api.users
+  end
+rescue Faulty::CircuitError => e
+  e.cause # The original error
+end
+```
+
+#### With Faulty::Result
+
+Sometimes exception handling is awkward to deal with, and could cause a lot of
+extra boilerplate code. In simple cases, it's can be more concise to allow
+Faulty to capture exceptions. Use the `#try_run` method for this.
+
+```ruby
+  result = Faulty.circuit('api').try_run do
+    api.users
+  end
+```
+
+The `result` variable is an instance of
+[`Faulty::Result`](https://www.rubydoc.info/gems/faulty/Faulty/Result). A result
+can either be an error if the circuit failed, or an "ok" value if it succeeded.
+
+You can check whether it's an error with the `ok?` or `error?` method.
+
+```ruby
+if result.ok?
+  users = result.get
+else
+  error = result.error
+end
+```
+
+Sometimes you want your application to crash when a circuit fails, but other
+times, you might want to return a default or fallback value. The `Result` object
+has a method `#or_default` to do that.
+
+```ruby
+# Users will be nil if the result is an error
+users = result.or_default
+
+# Users will be an empty array if the result is an error
+users = result.or_default([])
+
+# Users will be the return value of the block
+users = result.or_default do
+  # ...
+end
+```
+
+As we showed in the [Basic Usage](#basic-usage) section, you can put this
+together in a nice one-liner.
+
+```ruby
+Faulty.circuit('api').try_run { api.users }.or_default([])
+```
+
+### Specifying the Captured Errors
+
+By default, Faulty circuits will capture all `StandardError` errors, but
+sometimes you might not want every error to count as a circuit failure. For
+example, an HTTP 404 Not Found response typically should not cause a circuit to
+fail. You can customize the errors that Faulty captures
+
+```ruby
+Faulty.circuit('api', errors: [Net::HTTPServerException]).run do
+  # If this raises any exception other than Net::HTTPServerException
+  # Faulty will not capture it at all, and it will not count as a circuit failure
+  api.find_user(3)
+end
+```
+
+Or, if you'd instead like to specify errors to be excluded:
+
+```ruby
+Faulty.circuit('api', exclude: [Net::HTTPClientException]).run do
+  # If this raises a Net::HTTPClientException, Faulty will not capture it
+  api.find_user(3)
+end
+```
+
+Both options can even be specified together.
+
+```ruby
+Faulty.circuit(
+  'api',
+  errors: [ActiveRecord::ActiveRecordError]
+  exclude: [ActiveRecord::RecordNotFound, ActiveRecord::RecordNotUnique]
+).run do
+  # This only captures ActiveRecord::ActiveRecordError errors, but not
+  # ActiveRecord::RecordNotFound or ActiveRecord::RecordNotUnique errors
+  user = User.find(3)
+  user.save!
+end
+```
+
+### Using the Cache
+
+Circuit runs can be given a cache key, and if they are, the result of the circuit
+block will be cached. Calls to that circuit block will try to fetch from the
+cache, and only execute the block if the cache misses.
+
+```ruby
+Faulty.circuit('api').run(cache: 'all_users') do
+  api.users
+end
+```
+
+The cache will be refreshed (meaning the circuit will be allowed to execute)
+after `cache_refreshes_after` (default 900 second). However, the value remains
+stored in the cache for `cache_expires_in` (default 86400 seconds, 1 day). If
+the circuit fails, the last cached value will be returned even if
+`cache_refreshes_after` has passed.
+
+See the [Caching](#caching) section for more details on Faulty's caching
+strategy.
+
+### Configuring the Circuit Threshold
+
+To configure how a circuit responds to error, use the `cool_down`,
+`rate_threshold` and `sample_threshold` options.
+
+#### Rate Threshold
+
+The first option to look at is `rate_threshold`. This specifies the percentage
+of circuit runs that must fail before a circuit is opened.
+
+```ruby
+# This circuit must fail 70% of the time before the circuit will be tripped
+Faulty.circuit('api', rate_threshold: 0.7).run { api.users }
+```
+
+#### Sample Threshold
+
+We typically don't want circuits to trip immediately if the first execution
+fails. This is why we have the `sample_threshold` option. The circuit will never
+be tripped until we record at least this number of executions.
+
+```ruby
+# This circuit must run 10 times before it is allowed to trip. Those 10 runs
+# can be successes or fails. If at least 70% of them are failures, the circuit
+# will be opened.
+Faulty.circuit('api', sample_threshold: 10, rate_threshold: 0.7).run { api.users }
+```
+
+#### Cool Down
+
+The `cool_down` option specifies how much time to wait after a circuit is
+opened. During this period, the circuit will not be executed. After the cool
+down elapses, the circuit enters the "half open" state, and execution can be
+retried. See [How it Works](#how-it-works).
+
+```ruby
+# If this circuit trips, it will skip executions for 120 seconds before retrying
+Faulty.circuit('api', cool_down: 120).run { api.users }
+```
+
+### Circuit Options
 
 A circuit can be created with the following configuration options. Those options
 are only set once, synchronized across threads, and will persist in-memory until
@@ -277,13 +766,21 @@ the process exits. If you're using [multiple configurations](#multiple-configura
 the options are retained within the context of each instance. All options given
 after the first call to `Faulty.circuit` (or `Faulty#circuit`) are ignored.
 
+```ruby
+Faulty.circuit('api', rate_threshold: 0.7)
+
+# These options are ignored since with already initialized the circuit
+circuit = Faulty.circuit('api', rate_threshold: 0.3)
+circuit.options.rate_threshold # => 0.7
+```
+
 This is because the circuit objects themselves are internally memoized, and are
 read-only once created.
 
 The following example represents the defaults for a new circuit:
 
 ```ruby
-Faulty.circuit(:api) do |config|
+Faulty.circuit('api') do |config|
   # The cache backend for this circuit. Inherits the global cache by default.
   config.cache = Faulty.options.cache
 
@@ -311,7 +808,7 @@ Faulty.circuit(:api) do |config|
   # Errors that should be ignored by Faulty and not captured.
   config.exclude = []
 
-  # The event notifier. Inherits the global notifier by default
+  # The event notifier. Inherits the Faulty instance notifier by default
   config.notifier = Faulty.options.notifier
 
   # The minimum failure rate required to trip a circuit
@@ -320,7 +817,7 @@ Faulty.circuit(:api) do |config|
   # The minimum number of runs required before a circuit can trip
   config.sample_threshold = 3
 
-  # The storage backend for this circuit. Inherits the global storage by default
+  # The storage backend for this circuit. Inherits the Faulty instance storage by default
   config.storage = Faulty.options.storage
 end
 ```
@@ -332,70 +829,51 @@ with an options hash:
 Faulty.circuit(:api, cache_expires_in: 1800)
 ```
 
-## Caching
+### Listing Circuits
 
-Faulty integrates caching into it's circuits in a way that is particularly
-suited to fault-tolerance. To make use of caching, you must specify the `cache`
-configuration option when initializing Faulty or creating a new Faulty instance.
-If you're using Rails, this is automatically set to the Rails cache.
+For monitoring or debugging, you may need to retrieve a list of all circuit
+names. This is possible with `Faulty.list_circuits` (or `Faulty#list_circuits`
+if you're using an instance).
 
-Once your cache is configured, you can use the `cache` parameter when running
-a circuit to specify a cache key:
+You can get a list of all circuit statuses by mapping those names to their
+status objects. Be careful though, since this could cause performance issues for
+very large numbers of circuits.
 
 ```ruby
-feed = Faulty.circuit(:rss_feeds)
-  .try_run(cache: "rss_feeds/#{feed}") do
-    fetch_feed(feed)
-  end.or_default([])
+statuses = Faulty.list_circuits.map do |name|
+  Faulty.circuit(name).status
+end
 ```
 
-By default a circuit has the following options:
+### Locking Circuits
 
-- `cache_expires_in`: 86400 (1 day). This is sent to the cache backend and
-  defines how long the cache entry should be stored. After this time elapses,
-  queries will result in a cache miss.
-- `cache_refreshes_after`: 900 (15 minutes). This is used internally by Faulty
-  to indicate when a cache should be refreshed. It does not affect how long the
-  cache entry is stored.
-- `cache_refresh_jitter`: 180 (3 minutes = 20% of `cache_refreshes_after`). The
-  maximum number of seconds to randomly add or subtract from
-  `cache_refreshes_after` when determining whether to refresh a cache entry.
-  This mitigates the "thundering herd" effect caused by many processes
-  simultaneously refreshing the cache.
+It is possible to lock a circuit open or closed. A circuit that is locked open
+will never execute its block, and always raise an `Faulty::OpenCircuitError`.
+This is useful in cases where you need to manually disable a dependency
+entirely. If a cached value is available, that will be returned from the circuit
+until it expires, even outside its refresh period.
 
-This code will attempt to fetch an RSS feed protected by a circuit. If the feed
-is within the cache refresh period, then the result will be returned from the
-cache and the block will not be executed regardless of the circuit state.
+```ruby
+Faulty.circuit('broken_api').lock_open!
+```
 
-If the cache is hit, but outside its refresh period, then Faulty will check the
-circuit state. If the circuit is closed or half-open, then it will run the
-block. If the block is successful, then it will update the circuit, write to the
-cache and return the new value.
+A circuit that is locked closed will never trip. This is useful in cases where a
+circuit is continuously tripping incorrectly. If a cached value is available, it
+will have the same behavior as an unlocked circuit.
 
-However, if the cache is hit and the block fails, then that failure is noted
-in the circuit and Faulty returns the cached value.
+```ruby
+Faulty.circuit('false_positive').lock_closed!
+```
 
-If the circuit is open and the cache is hit, then Faulty will always return the
-cached value.
+To remove a lock of either type:
 
-If the cache query results in a miss, then faulty operates as normal. In the
-code above, if the circuit is closed, the block will be executed. If the block
-succeeds, the cache is refreshed. If the block fails, the default of `[]` will
-be returned.
+```ruby
+Faulty.circuit('fixed').unlock!
+```
 
-## Fault Tolerance
-
-Faulty backends are fault-tolerant by default. Any `StandardError`s raised by
-the storage or cache backends are captured and suppressed. Failure events for
-these errors are sent to the notifier.
-
-In case of a flaky storage or cache backend, Faulty also uses independent
-in-memory circuits to track failures so that we don't keep calling a backend
-that is failing. See the API docs for `Cache::AutoWire`, and `Storage::AutoWire`
-for more details.
-
-If the storage backend fails, circuits will default to closed. If the cache
-backend fails, all cache queries will miss.
+Locking or unlocking a circuit has no concurrency guarantees, so it's not
+recommended to lock or unlock circuits from production code. Instead, locks are
+intended as an emergency tool for troubleshooting and debugging.
 
 ## Event Handling
 
@@ -449,6 +927,9 @@ and reporting software.
 - `Faulty::Events::HoneybadgerListener`: Reports circuit and backend errors to
   the Honeybadger error reporting service.
 
+If your favorite monitoring software is not supported here, please open a PR
+that implements a listener for it.
+
 ### Custom Listeners
 
 You can implement your own listener by following the documentation in
@@ -468,296 +949,105 @@ Faulty.init do |config|
 end
 ```
 
-## Configuring the Storage Backend
+## How it Works
 
-A storage backend is required to use Faulty. By default, it uses in-memory
-storage, but Redis is also available, along with a number of wrappers used to
-improve resiliency and fault-tolerance.
+Faulty implements a version of circuit breakers inspired by "Release It!: Design
+and Deploy Production-Ready Software" by [Michael T. Nygard][michael nygard] and
+[Martin Fowler's post][martin fowler] on the subject. A few notable features of
+Faulty's implementation are:
 
-### Memory
+- Rate-based failure thresholds
+- Integrated caching inspired by Netflix's [Hystrix][hystrix] with automatic
+  cache jitter and error fallback.
+- Event-based monitoring
+- Flexible fault-tolerant storage with optional fallbacks
 
-The `Faulty::Storage::Memory` backend is the default storage backend. You may
-prefer this implementation if you want to avoid the complexity and potential
-failure-mode of cross-network circuit storage. The trade-off is that circuit
-state is only contained within a single process and will not be saved across
-application restarts. Locks will also be cleared on restart.
+Following the principals of the circuit-breaker pattern, the block given to
+`run` or `try_run` will always be executed as long as it never raises an error.
+If the block _does_ raise an error, then the circuit keeps track of the number
+of runs and the failure rate.
 
-The default configuration:
+Once both thresholds are breached, the circuit is opened. Once open, the
+circuit starts the cool-down period. Any executions within that cool-down are
+skipped, and a `Faulty::OpenCircuitError` will be raised.
 
-```ruby
-Faulty.init do |config|
-  config.storage = Faulty::Storage::Memory.new do |storage|
-    # The maximum number of circuit runs that will be stored
-    storage.max_sample_size = 100
-  end
-end
-```
+After the cool-down has elapsed, the circuit enters the half-open state. In this
+state, Faulty allows a single execution of the block as a test run. If the test
+run succeeds, the circuit is fully opened and the circuit state is reset. If the
+test run fails, the circuit is closed and the cool-down is reset.
 
-### Redis
+Each time the circuit changes state or executes the block, events are raised
+that are sent to the Faulty event notifier. The notifier should be used to track
+circuit failure rates, open circuits, etc.
 
-The `Faulty::Storage::Redis` backend provides distributed circuit storage using
-Redis. Although Faulty takes steps to reduce risk
-(See [Fault Tolerance](#fault-tolerance)), using cross-network storage does
-introduce some additional failure modes. To reduce this risk, be sure to set
-conservative timeouts for your Redis connection. Setting high timeouts will
-print warnings to stderr.
+In addition to the classic circuit breaker design, Faulty implements caching
+that is integrated with the circuit state. See [Caching](#caching) for more
+detail.
 
-The default configuration:
+### Caching
 
-```ruby
-Faulty.init do |config|
-  config.storage = Faulty::Storage::Redis.new do |storage|
-    # The Redis client. Accepts either a Redis instance, or a ConnectionPool
-    # of Redis instances. A low timeout is highly recommended to prevent
-    # cascading failures when evaluating circuits.
-    storage.client = ::Redis.new(timeout: 1)
+Faulty integrates caching into it's circuits in a way that is particularly
+suited to fault-tolerance. To make use of caching, you must specify the `cache`
+configuration option when initializing Faulty or creating a new Faulty instance.
+If you're using Rails, this is automatically set to the Rails cache.
 
-    # The prefix to prepend to all redis keys used by Faulty circuits
-    storage.key_prefix = 'faulty'
-
-    # A string to separate the parts of the redis key
-    storage.key_separator = ':'
-
-    # The maximum number of circuit runs that will be stored
-    storage.max_sample_size = 100
-
-    # The maximum number of seconds that a circuit run will be stored
-    storage.sample_ttl = 1800
-
-    # The maximum number of seconds to store a circuit. Does not apply to
-    # locks, which are indefinite.
-    storage.circuit_ttl = 604_800 # 1 Week
-
-    # The number of seconds between circuit expirations. Changing this setting
-    # is not recommended. See API docs for more implementation details.
-    storage.list_granularity = 3600
-
-    # If true, disables warnings about recommended client settings like timeouts
-    storage.disable_warnings = false
-  end
-end
-```
-
-### FallbackChain
-
-The `Faulty::Storage::FallbackChain` backend is a wrapper for multiple
-prioritized storage backends. If the first backend in the chain fails,
-consecutive backends are tried until one succeeds. The recommended use-case for
-this is to fall back on reliable storage if a networked storage backend fails.
-
-For example, you may configure Redis as your primary storage backend, with an
-in-memory storage backend as a fallback:
+Once your cache is configured, you can use the `cache` parameter when running
+a circuit to specify a cache key:
 
 ```ruby
-Faulty.init do |config|
-  config.storage = Faulty::Storage::FallbackChain.new([
-    Faulty::Storage::Redis.new,
-    Faulty::Storage::Memory.new
-  ])
-end
+feed = Faulty.circuit('rss_feeds')
+  .try_run(cache: "rss_feeds/#{feed}") do
+    fetch_feed(feed)
+  end.or_default([])
 ```
 
-Faulty instances will automatically use a fallback chain if an array is given to
-the `storage` option, so this example is equivalent to the above:
+By default a circuit has the following options:
 
-```ruby
-Faulty.init do |config|
-  config.storage = [
-    Faulty::Storage::Redis.new,
-    Faulty::Storage::Memory.new
-  ]
-end
-```
+- `cache_expires_in`: 86400 (1 day). This is sent to the cache backend and
+  defines how long the cache entry should be stored. After this time elapses,
+  queries will result in a cache miss.
+- `cache_refreshes_after`: 900 (15 minutes). This is used internally by Faulty
+  to indicate when a cache should be refreshed. It does not affect how long the
+  cache entry is stored.
+- `cache_refresh_jitter`: 180 (3 minutes = 20% of `cache_refreshes_after`). The
+  maximum number of seconds to randomly add or subtract from
+  `cache_refreshes_after` when determining whether to refresh a cache entry.
+  This mitigates the "thundering herd" effect caused by many processes
+  simultaneously refreshing the cache.
 
-If the fallback chain fails-over to backup storage, circuit states will not
-carry over, so failover could be temporarily disruptive to your application.
-However, any calls to `#lock` or `#unlock` will always be persisted to all
-backends so that locks are maintained during failover.
+This code will attempt to fetch an RSS feed protected by a circuit. If the feed
+is within the cache refresh period, then the result will be returned from the
+cache and the block will not be executed regardless of the circuit state.
 
-### Storage::FaultTolerantProxy
+If the cache is hit, but outside its refresh period, then Faulty will check the
+circuit state. If the circuit is closed or half-open, then it will run the
+block. If the block is successful, then it will update the circuit, write to the
+cache and return the new value.
 
-This wrapper is applied to all non-fault-tolerant storage backends by default
-(see the [API docs for `Faulty::Storage::AutoWire`](https://www.rubydoc.info/gems/faulty/Faulty/Storage/AutoWire)).
+However, if the cache is hit and the block fails, then that failure is noted
+in the circuit and Faulty returns the cached value.
 
-`Faulty::Storage::FaultTolerantProxy` is a wrapper that suppresses storage
-errors and returns sensible defaults during failures. If a storage backend is
-failing, all circuits will be treated as closed regardless of locks or previous
-history.
+If the circuit is open and the cache is hit, then Faulty will always return the
+cached value.
 
-If you wish your application to use a secondary storage backend instead of
-failing closed, use `FallbackChain`.
+If the cache query results in a miss, then faulty operates as normal. In the
+code above, if the circuit is closed, the block will be executed. If the block
+succeeds, the cache is refreshed. If the block fails, the default of `[]` will
+be returned.
 
-### Storage::CircuitProxy
+### Fault Tolerance
 
-This wrapper is applied to all non-fault-tolerant storage backends by default
-(see the [API docs for `Faulty::Storage::AutoWire`](https://www.rubydoc.info/gems/faulty/Faulty/Cache/AutoWire)).
+Faulty backends are fault-tolerant by default. Any `StandardError`s raised by
+the storage or cache backends are captured and suppressed. Failure events for
+these errors are sent to the notifier.
 
-`Faulty::Storage::CircuitProxy` is a wrapper that uses an independent in-memory
-circuit to track failures to storage backends. If a storage backend fails
-continuously, it will be temporarily disabled and raise `Faulty::CircuitError`s.
+In case of a flaky storage or cache backend, Faulty also uses independent
+in-memory circuits to track failures so that we don't keep calling a backend
+that is failing. See the API docs for `Cache::AutoWire`, and `Storage::AutoWire`
+for more details.
 
-Typically this is used inside a `FaultTolerantProxy` or `FallbackChain` so that
-these storage failures are handled gracefully.
-
-## Configuring the Cache Backend
-
-### Null
-
-The `Faulty::Cache::Null` cache disables caching. It is the default if Rails and
-ActiveSupport are not present.
-
-### Rails
-
-`Faulty::Cache::Rails` is the default cache if Rails or ActiveSupport are
-present. If Rails is present, it uses `Rails.cache` as the backend. If
-ActiveSupport is present, but Rails is not, it creates a new
-`ActiveSupport::Cache::MemoryStore` by default.  This backend can be used with
-any `ActiveSupport::Cache`.
-
-```ruby
-Faulty.init do |config|
-  config.cache = Faulty::Cache::Rails.new(
-    ActiveSupport::Cache::RedisCacheStore.new
-  )
-end
-```
-
-### Cache::FaultTolerantProxy
-
-This wrapper is applied to all non-fault-tolerant cache backends by default
-(see the API docs for `Faulty::Cache::AutoWire`).
-
-`Faulty::Cache::FaultTolerantProxy` is a wrapper that suppresses cache errors
-and acts like a null cache during failures. Reads always return `nil`, and
-writes are no-ops.
-
-### Cache::CircuitProxy
-
-This wrapper is applied to all non-fault-tolerant circuit backends by default
-(see the API docs for `Faulty::Circuit::AutoWire`).
-
-`Faulty::Circuit::CircuitProxy` is a wrapper that uses an independent in-memory
-circuit to track failures to circuit backends. If a circuit backend fails
-continuously, it will be temporarily disabled and raise `Faulty::CircuitError`s.
-
-Typically this is used inside a `FaultTolerantProxy` so that these cache
-failures are handled gracefully.
-
-## Listing Circuits
-
-For monitoring or debugging, you may need to retrieve a list of all circuit
-names. This is possible with `Faulty.list_circuits` (or `Faulty#list_circuits`
-if you're using an instance).
-
-You can get a list of all circuit statuses by mapping those names to their
-status objects. Be careful though, since this could cause performance issues for
-very large numbers of circuits.
-
-```ruby
-statuses = Faulty.list_circuits.map do |name|
-  Faulty.circuit(name).status
-end
-```
-
-## Locking Circuits
-
-It is possible to lock a circuit open or closed. A circuit that is locked open
-will never execute its block, and always raise an `Faulty::OpenCircuitError`.
-This is useful in cases where you need to manually disable a dependency
-entirely. If a cached value is available, that will be returned from the circuit
-until it expires, even outside its refresh period.
-
-```ruby
-Faulty.circuit(:broken_api).lock_open!
-```
-
-A circuit that is locked closed will never trip. This is useful in cases where a
-circuit is continuously tripping incorrectly. If a cached value is available, it
-will have the same behavior as an unlocked circuit.
-
-```ruby
-Faulty.circuit(:false_positive).lock_closed!
-```
-
-To remove a lock of either type:
-
-```ruby
-Faulty.circuit(:fixed).unlock!
-```
-
-Locking or unlocking a circuit has no concurrency guarantees, so it's not
-recommended to lock or unlock circuits from production code. Instead, locks are
-intended as an emergency tool for troubleshooting and debugging.
-
-## Multiple Configurations
-
-It is possible to have multiple configurations of Faulty running within the same
-process. The most common setup is to simply use `Faulty.init` to
-configure Faulty globally, however it is possible to have additional
-configurations.
-
-### The default instance
-
-When you call `Faulty.init`, you are actually creating the default instance of
-`Faulty`. You can access this instance directly by calling `Faulty.default`.
-
-```ruby
-# We create the default instance
-Faulty.init
-
-# Access the default instance
-faulty = Faulty.default
-
-# Alternatively, access the instance by name
-faulty = Faulty[:default]
-```
-
-You can rename the default instance if desired:
-
-```ruby
-Faulty.init(:custom_default)
-
-instance = Faulty.default
-instance = Faulty[:custom_default]
-```
-
-### Multiple Instances
-
-If you want multiple instance, but want global, thread-safe access to
-them, you can use `Faulty.register`:
-
-```ruby
-api_faulty = Faulty.new do |config|
-  # This accepts the same options as Faulty.init
-end
-
-Faulty.register(:api, api_faulty)
-
-# Now access the instance globally
-Faulty[:api]
-```
-
-When you call `Faulty.circuit`, that's the same as calling
-`Faulty.default.circuit`, so you can apply the same principal to any other
-registered Faulty instance:
-
-```ruby
-Faulty[:api].circuit(:api_circuit).run { 'ok' }
-```
-
-### Standalone Instances
-
-If you choose, you can use Faulty instances without registering them globally.
-This is more object-oriented and is necessary if you use dependency injection.
-
-```ruby
-faulty = Faulty.new
-faulty.circuit(:standalone_circuit)
-```
-
-Calling `#circuit` on the instance still has the same memoization behavior that
-`Faulty.circuit` has, so subsequent calls to the same circuit will return a
-memoized circuit object.
+If the storage backend fails, circuits will default to closed. If the cache
+backend fails, all cache queries will miss.
 
 ## Implementing a Cache Backend
 
