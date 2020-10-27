@@ -14,6 +14,8 @@ External dependencies like APIs can start failing at any time When they do, it
 could cause cascading failures in your application.
 
 ```ruby
+# The application will always try to execute this even if the API
+# fails repeatedly
 api.users
 ```
 
@@ -45,7 +47,6 @@ Also see "Release It!: Design and Deploy Production-Ready Software" by
 
 ## Contents
 
-* [Contents](#contents)
 * [Installation](#installation)
 * [API Docs](#api-docs)
 * [Setup](#setup)
@@ -108,8 +109,10 @@ Or install it manually:
 gem install faulty
 ```
 
-During your app startup, call `Faulty.init`. For Rails, you would do this in
-`config/initializers/faulty.rb`. See [Setup](#setup) for details.
+During your app startup, call
+[`Faulty.init`](https://www.rubydoc.info/gems/faulty/Faulty.init).
+For Rails, you would do this in `config/initializers/faulty.rb`. See
+[Setup](#setup) for details.
 
 ## API Docs
 
@@ -157,9 +160,11 @@ For a full list of configuration options, see the
 
 ## Basic Usage
 
-To create a circuit, call `Faulty.circuit`. This can be done as you use the
-circuit, or you can set it up beforehand. Any options passed to the `circuit`
-method are synchronized across threads and saved as long as the process is alive.
+To create a circuit, call
+[`Faulty.circuit`](https://www.rubydoc.info/gems/faulty/Faulty.circuit).
+This can be done as you use the circuit, or you can set it up beforehand. Any
+options passed to the `circuit` method are synchronized across threads and saved
+as long as the process is alive.
 
 ```ruby
 circuit1 = Faulty.circuit(:api, rate_threshold: 0.6)
@@ -183,11 +188,12 @@ end
 See [How it Works](#how-it-works) for more details about how Faulty handles
 circuit failures.
 
-If the `run` block above fails, a `Faulty::CircuitError` will be raised. It is
-up to your application to handle that error however necessary or crash. Often
-though, you don't want to crash your application when a circuit fails, but
-instead apply a fallback or default behavior. For this, Faulty provides the
-`try_run` method:
+If the `run` block above fails, a
+[`Faulty::CircuitError`](https://www.rubydoc.info/gems/faulty/Faulty/CircuitError)
+will be raised. It is up to your application to handle that error however
+necessary or crash. Often though, you don't want to crash your application when
+a circuit fails, but instead apply a fallback or default behavior. For this,
+Faulty provides the `try_run` method:
 
 ```ruby
 result = Faulty.circuit(:api).try_run do
@@ -201,11 +207,13 @@ else
 end
 ```
 
-The `try_run` method returns a result type instead of raising errors. See the
-API docs for `Result` for more information. Here we use it to check whether the
-result is `ok?` (not an error). If it is we set the users variable, otherwise we
-set a default of an empty array. This pattern is so common, that `Result` also
-implements a helper method `or_default` to do the same thing:
+The [`try_run`](https://www.rubydoc.info/gems/faulty/Faulty/Circuit:try_run)
+method returns a result type instead of raising errors. See the API docs for
+[`Result`](https://www.rubydoc.info/gems/faulty/Faulty/Result) for more
+information. Here we use it to check whether the result is `ok?` (not an error).
+If it is we set the users variable, otherwise we set a default of an empty
+array. This pattern is so common, that `Result` also implements a helper method
+`or_default` to do the same thing:
 
 ```ruby
 users = Faulty.circuit(:api).try_run do
@@ -334,11 +342,13 @@ improve resiliency and fault-tolerance.
 
 #### Memory
 
-The `Faulty::Storage::Memory` backend is the default storage backend. You may
-prefer this implementation if you want to avoid the complexity and potential
-failure-mode of cross-network circuit storage. The trade-off is that circuit
-state is only contained within a single process and will not be saved across
-application restarts. Locks will also be cleared on restart.
+The
+[`Faulty::Storage::Memory`](https://www.rubydoc.info/gems/faulty/Faulty/Storage/Memory)
+backend is the default storage backend. You may prefer this implementation if
+you want to avoid the complexity and potential failure-mode of cross-network
+circuit storage. The trade-off is that circuit state is only contained within a
+single process and will not be saved across application restarts. Locks will
+also be cleared on restart.
 
 The default configuration:
 
@@ -353,12 +363,12 @@ end
 
 #### Redis
 
-The `Faulty::Storage::Redis` backend provides distributed circuit storage using
-Redis. Although Faulty takes steps to reduce risk
-(See [Fault Tolerance](#fault-tolerance)), using cross-network storage does
-introduce some additional failure modes. To reduce this risk, be sure to set
-conservative timeouts for your Redis connection. Setting high timeouts will
-print warnings to stderr.
+The [`Faulty::Storage::Redis`](https://www.rubydoc.info/gems/faulty/Faulty/Storage/Redis)
+backend provides distributed circuit storage using Redis. Although Faulty takes
+steps to reduce risk (See [Fault Tolerance](#fault-tolerance)), using
+cross-network storage does introduce some additional failure modes. To reduce
+this risk, be sure to set conservative timeouts for your Redis connection.
+Setting high timeouts will print warnings to stderr.
 
 The default configuration:
 
@@ -398,10 +408,11 @@ end
 
 #### FallbackChain
 
-The `Faulty::Storage::FallbackChain` backend is a wrapper for multiple
-prioritized storage backends. If the first backend in the chain fails,
-consecutive backends are tried until one succeeds. The recommended use-case for
-this is to fall back on reliable storage if a networked storage backend fails.
+The [`Faulty::Storage::FallbackChain`](https://www.rubydoc.info/gems/faulty/Faulty/Storage/FallbackChain)
+backend is a wrapper for multiple prioritized storage backends. If the first
+backend in the chain fails, consecutive backends are tried until one succeeds.
+The recommended use-case for this is to fall back on reliable storage if a
+networked storage backend fails.
 
 For example, you may configure Redis as your primary storage backend, with an
 in-memory storage backend as a fallback:
@@ -437,40 +448,43 @@ backends so that locks are maintained during failover.
 This wrapper is applied to all non-fault-tolerant storage backends by default
 (see the [API docs for `Faulty::Storage::AutoWire`](https://www.rubydoc.info/gems/faulty/Faulty/Storage/AutoWire)).
 
-`Faulty::Storage::FaultTolerantProxy` is a wrapper that suppresses storage
-errors and returns sensible defaults during failures. If a storage backend is
-failing, all circuits will be treated as closed regardless of locks or previous
-history.
+[`Faulty::Storage::FaultTolerantProxy`](https://www.rubydoc.info/gems/faulty/Faulty/Storage/FaultTolerantProxy)
+is a wrapper that suppresses storage errors and returns sensible defaults during
+failures. If a storage backend is failing, all circuits will be treated as
+closed regardless of locks or previous history.
 
 If you wish your application to use a secondary storage backend instead of
-failing closed, use `FallbackChain`.
+failing closed, use [`FallbackChain`](#storage--fallbackchain).
 
 #### Storage::CircuitProxy
 
 This wrapper is applied to all non-fault-tolerant storage backends by default
 (see the [API docs for `Faulty::Storage::AutoWire`](https://www.rubydoc.info/gems/faulty/Faulty/Cache/AutoWire)).
 
-`Faulty::Storage::CircuitProxy` is a wrapper that uses an independent in-memory
-circuit to track failures to storage backends. If a storage backend fails
-continuously, it will be temporarily disabled and raise `Faulty::CircuitError`s.
+[`Faulty::Storage::CircuitProxy`](https://www.rubydoc.info/gems/faulty/Faulty/Storage/CircuitProxy)
+is a wrapper that uses an independent in-memory circuit to track failures to
+storage backends. If a storage backend fails continuously, it will be
+temporarily disabled and raise `Faulty::CircuitError`s.
 
-Typically this is used inside a `FaultTolerantProxy` or `FallbackChain` so that
-these storage failures are handled gracefully.
+Typically this is used inside a [`FaultTolerantProxy`](#storage--faulttolerantproxy) or
+[`FallbackChain`](#storage--fallbackchain) so that these storage failures are handled
+gracefully.
 
 ### Configuring the Cache Backend
 
 #### Null
 
-The `Faulty::Cache::Null` cache disables caching. It is the default if Rails and
-ActiveSupport are not present.
+The [`Faulty::Cache::Null`](https://www.rubydoc.info/gems/faulty/Faulty/Cache/Null)
+cache disables caching. It is the default if Rails and ActiveSupport are not
+present.
 
 #### Rails
 
-`Faulty::Cache::Rails` is the default cache if Rails or ActiveSupport are
-present. If Rails is present, it uses `Rails.cache` as the backend. If
-ActiveSupport is present, but Rails is not, it creates a new
-`ActiveSupport::Cache::MemoryStore` by default.  This backend can be used with
-any `ActiveSupport::Cache`.
+[`Faulty::Cache::Rails`](https://www.rubydoc.info/gems/faulty/Faulty/Cache/Rails)
+is the default cache if Rails or ActiveSupport are present. If Rails is present,
+it uses `Rails.cache` as the backend. If ActiveSupport is present, but Rails is
+not, it creates a new `ActiveSupport::Cache::MemoryStore` by default.  This
+backend can be used with any `ActiveSupport::Cache`.
 
 ```ruby
 Faulty.init do |config|
@@ -485,21 +499,23 @@ end
 This wrapper is applied to all non-fault-tolerant cache backends by default
 (see the API docs for `Faulty::Cache::AutoWire`).
 
-`Faulty::Cache::FaultTolerantProxy` is a wrapper that suppresses cache errors
-and acts like a null cache during failures. Reads always return `nil`, and
-writes are no-ops.
+[`Faulty::Cache::FaultTolerantProxy`](https://www.rubydoc.info/gems/faulty/Faulty/Cache/FaultTolerantProxy)
+is a wrapper that suppresses cache errors and acts like a null cache during
+failures. Reads always return `nil`, and writes are no-ops.
 
 #### Cache::CircuitProxy
 
 This wrapper is applied to all non-fault-tolerant circuit backends by default
 (see the API docs for `Faulty::Circuit::AutoWire`).
 
-`Faulty::Circuit::CircuitProxy` is a wrapper that uses an independent in-memory
-circuit to track failures to circuit backends. If a circuit backend fails
-continuously, it will be temporarily disabled and raise `Faulty::CircuitError`s.
+[`Faulty::Circuit::CircuitProxy`](https://www.rubydoc.info/gems/faulty/Faulty/Cache/CircuitProxy)
+is a wrapper that uses an independent in-memory circuit to track failures to
+circuit backends. If a circuit backend fails continuously, it will be
+temporarily disabled and raise `Faulty::CircuitError`s.
 
-Typically this is used inside a `FaultTolerantProxy` so that these cache
-failures are handled gracefully.
+Typically this is used inside a
+[`FaultTolerantProxy`](#cache--faulttolerantproxy) so that these cache failures
+are handled gracefully.
 
 ### Multiple Configurations
 
@@ -510,8 +526,10 @@ configurations.
 
 #### The default instance
 
-When you call `Faulty.init`, you are actually creating the default instance of
-`Faulty`. You can access this instance directly by calling `Faulty.default`.
+When you call [`Faulty.init`](https://www.rubydoc.info/gems/faulty/Faulty.init),
+you are actually creating the default instance of `Faulty`. You can access this
+instance directly by calling
+[`Faulty.default`](https://www.rubydoc.info/gems/faulty/Faulty.default).
 
 ```ruby
 # We create the default instance
@@ -536,7 +554,8 @@ instance = Faulty[:custom_default]
 #### Multiple Instances
 
 If you want multiple instance, but want global, thread-safe access to
-them, you can use `Faulty.register`:
+them, you can use
+[`Faulty.register`](https://www.rubydoc.info/gems/faulty/Faulty.register):
 
 ```ruby
 api_faulty = Faulty.new do |config|
@@ -549,9 +568,9 @@ Faulty.register(:api, api_faulty)
 Faulty[:api]
 ```
 
-When you call `Faulty.circuit`, that's the same as calling
-`Faulty.default.circuit`, so you can apply the same principal to any other
-registered Faulty instance:
+When you call [`Faulty.circuit`](https://www.rubydoc.info/gems/faulty/Faulty.circuit),
+that's the same as calling `Faulty.default.circuit`, so you can apply the same
+principal to any other registered Faulty instance:
 
 ```ruby
 Faulty[:api].circuit('api_circuit').run { 'ok' }
@@ -559,7 +578,8 @@ Faulty[:api].circuit('api_circuit').run { 'ok' }
 
 #### Standalone Instances
 
-If you choose, you can use Faulty instances without registering them globally.
+If you choose, you can use Faulty instances without registering them globally by
+simply calling [`Faulty.new`](https://www.rubydoc.info/gems/faulty/Faulty:initialize).
 This is more object-oriented and is necessary if you use dependency injection.
 
 ```ruby
@@ -587,16 +607,19 @@ circuit = faulty.circuit('api')
 
 ### Running a Circuit
 
-You can handle circuit errors either with exceptions, or with a Faulty `Result`.
-They both have the same behavior, but you can choose whatever syntax is more
-convenient for your use-case.
+You can handle circuit errors either with exceptions, or with a Faulty
+[`Result`](https://www.rubydoc.info/gems/faulty/Faulty/Result). They both have
+the same behavior, but you can choose whatever syntax is more convenient for
+your use-case.
 
 #### With Exceptions
 
-If we want exceptions to be raised, we use the `#run` method. This does not
-suppress exceptions, only monitors them. If `api.users` raises an exception
-here, it will bubble up to the caller. The exception will be a sub-class of
-`Faulty::CircuitError`, and the error `cause` will be the original error object.
+If we want exceptions to be raised, we use the
+[`#run`](https://www.rubydoc.info/gems/faulty/Faulty/Circuit:run) method. This
+does not suppress exceptions, only monitors them. If `api.users` raises an
+exception here, it will bubble up to the caller. The exception will be a
+sub-class of [`Faulty::CircuitError`](https://www.rubydoc.info/gems/faulty/Faulty/CircuitError),
+and the error `cause` will be the original error object.
 
 ```ruby
 begin
@@ -612,7 +635,9 @@ end
 
 Sometimes exception handling is awkward to deal with, and could cause a lot of
 extra boilerplate code. In simple cases, it's can be more concise to allow
-Faulty to capture exceptions. Use the `#try_run` method for this.
+Faulty to capture exceptions. Use the
+[`#try_run`](https://www.rubydoc.info/gems/faulty/Faulty/Circuit:try_run) method
+for this.
 
 ```ruby
   result = Faulty.circuit('api').try_run do
@@ -636,7 +661,8 @@ end
 
 Sometimes you want your application to crash when a circuit fails, but other
 times, you might want to return a default or fallback value. The `Result` object
-has a method `#or_default` to do that.
+has a method [`#or_default`](https://www.rubydoc.info/gems/faulty/Faulty/Result:or_default)
+to do that.
 
 ```ruby
 # Users will be nil if the result is an error
@@ -832,7 +858,8 @@ Faulty.circuit(:api, cache_expires_in: 1800)
 ### Listing Circuits
 
 For monitoring or debugging, you may need to retrieve a list of all circuit
-names. This is possible with `Faulty.list_circuits` (or `Faulty#list_circuits`
+names. This is possible with [`Faulty.list_circuits`](https://www.rubydoc.info/gems/faulty/Faulty.list_circuits)
+(or [`Faulty#list_circuits`](https://www.rubydoc.info/gems/faulty/Faulty:list_circuits)
 if you're using an instance).
 
 You can get a list of all circuit statuses by mapping those names to their
@@ -852,6 +879,10 @@ will never execute its block, and always raise an `Faulty::OpenCircuitError`.
 This is useful in cases where you need to manually disable a dependency
 entirely. If a cached value is available, that will be returned from the circuit
 until it expires, even outside its refresh period.
+
+* [`lock_open!`](https://www.rubydoc.info/gems/faulty/Faulty/Circuit:lock_open!)
+* [`lock_closed!`](https://www.rubydoc.info/gems/faulty/Faulty/Circuit:lock_closed!)
+* [`unlock!`](https://www.rubydoc.info/gems/faulty/Faulty/Circuit:unlock!)
 
 ```ruby
 Faulty.circuit('broken_api').lock_open!
@@ -878,7 +909,8 @@ intended as an emergency tool for troubleshooting and debugging.
 ## Event Handling
 
 Faulty uses an event-dispatching model to deliver notifications of internal
-events. The full list of events is available from `Faulty::Events::EVENTS`.
+events. The full list of events is available from
+[`Faulty::Events::EVENTS`](https://www.rubydoc.info/gems/faulty/Faulty/Events).
 
 - `cache_failure` -  A cache backend raised an error. Payload: `key`, `action`, `error`
 - `circuit_cache_hit` -  A circuit hit the cache. Payload: `circuit`, `key`
@@ -903,8 +935,9 @@ be replaced, or additional listeners can be added.
 
 ### CallbackListener
 
-The callback listener is useful for ad-hoc handling of events. You can specify
-an event handler by calling a method on the callback handler by the same name.
+The [`CallbackListener`](https://www.rubydoc.info/gems/faulty/Faulty/Events/CallbackListener)
+is useful for ad-hoc handling of events. You can specify an event handler by
+calling a method on the callback handler by the same name.
 
 ```ruby
 Faulty.init do |config|
@@ -924,8 +957,11 @@ In addition to the log and callback listeners, Faulty intends to implement
 built-in service-specific handlers to make it easy to integrate with monitoring
 and reporting software.
 
-- `Faulty::Events::HoneybadgerListener`: Reports circuit and backend errors to
-  the Honeybadger error reporting service.
+* [`Faulty::Events::LogListener`](https://www.rubydoc.info/gems/faulty/Faulty/Events/LogListener):
+  Logs all circuit events to a specified `Logger` or `$stderr` by default. This
+  is enabled by default if no listeners are specified.
+* [`Faulty::Events::HoneybadgerListener`](https://www.rubydoc.info/gems/faulty/Faulty/Events/HoneybadgerListener):
+  Reports circuit and backend errors to the Honeybadger error reporting service.
 
 If your favorite monitoring software is not supported here, please open a PR
 that implements a listener for it.
@@ -933,7 +969,8 @@ that implements a listener for it.
 ### Custom Listeners
 
 You can implement your own listener by following the documentation in
-`Faulty::Events::ListenerInterface`. For example:
+[`Faulty::Events::ListenerInterface`](https://www.rubydoc.info/gems/faulty/Faulty/Events/ListenerInterface).
+For example:
 
 ```ruby
 class MyFaultyListener
@@ -1043,7 +1080,8 @@ these errors are sent to the notifier.
 
 In case of a flaky storage or cache backend, Faulty also uses independent
 in-memory circuits to track failures so that we don't keep calling a backend
-that is failing. See the API docs for `Cache::AutoWire`, and `Storage::AutoWire`
+that is failing. See the API docs for [`Cache::AutoWire`](https://www.rubydoc.info/gems/faulty/Faulty/Cache/AutoWire),
+and [`Storage::AutoWire`](https://www.rubydoc.info/gems/faulty/Faulty/Storage/AutoWire)
 for more details.
 
 If the storage backend fails, circuits will default to closed. If the cache
@@ -1052,8 +1090,8 @@ backend fails, all cache queries will miss.
 ## Implementing a Cache Backend
 
 You can implement your own cache backend by following the documentation in
-`Faulty::Cache::Interface`. It is a fairly simple API, with only get/set
-methods. For example:
+[`Faulty::Cache::Interface`](https://www.rubydoc.info/gems/faulty/Faulty/Cache/Interface).
+It is a fairly simple API, with only get/set methods. For example:
 
 ```ruby
 class MyFaultyCache
@@ -1082,10 +1120,11 @@ users.
 ## Implementing a Storage Backend
 
 You can implement your own storage backend by following the documentation in
-`Faulty::Storage::Interface`. Since the storage has some tricky requirements
-regarding concurrency, the `Faulty::Storage::Memory` can be used as a reference
-implementation. Feel free to open a pull request if your storage backend
-would be useful for other users.
+[`Faulty::Storage::Interface`](https://www.rubydoc.info/gems/faulty/Faulty/Storage/Interface).
+Since the storage has some tricky requirements regarding concurrency, the
+[`Faulty::Storage::Memory`](https://www.rubydoc.info/gems/faulty/Faulty/Storage/Memory)
+can be used as a reference implementation. Feel free to open a pull request if
+your storage backend would be useful for other users.
 
 ## Alternatives
 
