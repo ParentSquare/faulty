@@ -1,7 +1,7 @@
 # Faulty
 
 [![Gem Version](https://badge.fury.io/rb/faulty.svg)](https://badge.fury.io/rb/faulty)
-[![Build Status](https://travis-ci.org/ParentSquare/faulty.svg?branch=master)](https://travis-ci.org/ParentSquare/faulty)
+[![CI](https://github.com/ParentSquare/faulty/workflows/CI/badge.svg)](https://github.com/ParentSquare/faulty/actions?query=workflow%3ACI+branch%3Amaster)
 [![Code Climate](https://codeclimate.com/github/ParentSquare/faulty/badges/gpa.svg)](https://codeclimate.com/github/ParentSquare/faulty)
 [![Test Coverage](https://codeclimate.com/github/ParentSquare/faulty/badges/coverage.svg)](https://codeclimate.com/github/ParentSquare/faulty)
 [![Inline docs](http://inch-ci.org/github/ParentSquare/faulty.svg?branch=master)](http://inch-ci.org/github/ParentSquare/faulty)
