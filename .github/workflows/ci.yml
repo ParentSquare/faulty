@@ -25,8 +25,7 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
       - run: bundle exec rubocop
-
-
+        if: matrix.ruby == '2.7'
       - name: rspec with coverage
         uses: paambaati/codeclimate-action@v2.7.5
         env:
