@@ -508,9 +508,9 @@ failures. Reads always return `nil`, and writes are no-ops.
 This wrapper is applied to all non-fault-tolerant circuit backends by default
 (see the API docs for `Faulty::Circuit::AutoWire`).
 
-[`Faulty::Circuit::CircuitProxy`](https://www.rubydoc.info/gems/faulty/Faulty/Cache/CircuitProxy)
+[`Faulty::Cache::CircuitProxy`](https://www.rubydoc.info/gems/faulty/Faulty/Cache/CircuitProxy)
 is a wrapper that uses an independent in-memory circuit to track failures to
-circuit backends. If a circuit backend fails continuously, it will be
+cache backends. If a cache backend fails continuously, it will be
 temporarily disabled and raise `Faulty::CircuitError`s.
 
 Typically this is used inside a
