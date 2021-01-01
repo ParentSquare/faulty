@@ -360,7 +360,7 @@ class Faulty
       end
 
       def check_redis_options!
-        ropts = redis { |r| r.client.options }
+        ropts = redis { |r| r.instance_variable_get(:@client).options }
 
         bad_timeouts = {}
         %i[connect_timeout read_timeout write_timeout].each do |time_opt|

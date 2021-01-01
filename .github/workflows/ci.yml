@@ -12,7 +12,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        redis: [4]
         ruby: [2.3, 2.4, 2.5, 2.6, 2.7, 3.0, jruby-9.2.10, truffleruby-20.2.0]
+        include:
+          - redis: 3
+            ruby: 2.7
     services:
       redis:
         image: redis
