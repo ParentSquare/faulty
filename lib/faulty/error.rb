@@ -28,17 +28,25 @@ class Faulty
     end
   end
 
-  # The base error for all errors raised during circuit runs
-  #
-  class CircuitError < FaultyError
+  # Included in faulty circuit errors to provide common features for
+  # native and patched errors
+  module CircuitErrorBase
     attr_reader :circuit
 
+    # @param message [String]
+    # @param circuit [Circuit] The circuit that raised the error
     def initialize(message, circuit)
       message ||= %(circuit error for "#{circuit.name}")
       @circuit = circuit
 
       super(message)
     end
+  end
+
+  # The base error for all errors raised during circuit runs
+  #
+  class CircuitError < FaultyError
+    include CircuitErrorBase
   end
 
   # Raised when running a circuit that is already open

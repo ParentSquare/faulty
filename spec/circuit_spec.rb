@@ -20,6 +20,16 @@ RSpec.context :circuits do
 
   let(:cache) { Faulty::Cache::Mock.new }
 
+  let(:custom_error_base) do
+    stub_const('TestErrorBase', Class.new(RuntimeError))
+  end
+
+  let(:custom_error_module) do
+    stub_const('TestErrors', Module.new)
+    Faulty::Patch.define_circuit_errors(TestErrors, custom_error_base)
+    TestErrors
+  end
+
   it 'can be constructed with only a name' do
     circuit = Faulty::Circuit.new('plain')
     expect(circuit.name).to eq('plain')
@@ -221,6 +231,22 @@ RSpec.context :circuits do
       Timecop.freeze(Time.now + 200)
       result = circuit.run(cache: 'cache_test') { 'new' }
       expect(result).to eq('new')
+    end
+
+    context 'with error_module' do
+      let(:options) do
+        {
+          cache: cache,
+          error_module: custom_error_module,
+          storage: storage
+        }
+      end
+
+      it 'raises custom errors' do
+        expect do
+          circuit.run { raise 'fail' }
+        end.to raise_error(custom_error_module::CircuitFailureError)
+      end
     end
   end
 

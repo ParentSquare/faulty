@@ -54,6 +54,15 @@ RSpec.describe Faulty do
     expect(described_class[:new_instance]).to eq(instance)
   end
 
+  it 'accesses intances by string or symbol' do
+    described_class.init
+    instance = described_class.new
+    described_class.register(:symbol, instance)
+    expect(described_class['symbol']).to eq(instance)
+    described_class.register(:string, instance)
+    expect(described_class['string']).to eq(instance)
+  end
+
   it 'registers a named instance without default' do
     described_class.init(nil)
     instance = described_class.new

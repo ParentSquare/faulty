@@ -50,6 +50,9 @@ class Faulty
     # @!attribute [r] cool_down
     #   @return [Integer] The number of seconds the circuit will
     #     stay open after it is tripped. Default 300.
+    # @!attribute [r] error_module
+    #   @return [Module] Used by patches to set the namespace module for
+    #     the faulty errors that will be raised. Default `Faulty`
     # @!attribute [r] evaluation_window
     #   @return [Integer] The number of seconds of history that
     #     will be evaluated to determine the failure rate for a circuit.
@@ -88,6 +91,7 @@ class Faulty
       :rate_threshold,
       :sample_threshold,
       :errors,
+      :error_module,
       :exclude,
       :cache,
       :notifier,
@@ -103,6 +107,7 @@ class Faulty
           cache_refreshes_after: 900,
           cool_down: 300,
           errors: [StandardError],
+          error_module: Faulty,
           exclude: [],
           evaluation_window: 60,
           rate_threshold: 0.5,
@@ -115,6 +120,7 @@ class Faulty
           cache
           cool_down
           errors
+          error_module
           exclude
           evaluation_window
           rate_threshold
@@ -282,7 +288,7 @@ class Faulty
     # @return The result from cache if available
     def run_skipped(cached_value)
       skipped!
-      raise OpenCircuitError.new(nil, self) if cached_value.nil?
+      raise options.error_module::OpenCircuitError.new(nil, self) if cached_value.nil?
 
       cached_value
     end
@@ -301,9 +307,9 @@ class Faulty
       raise if options.exclude.any? { |ex| e.is_a?(ex) }
 
       if cached_value.nil?
-        raise CircuitTrippedError.new(nil, self) if failure!(e)
+        raise options.error_module::CircuitTrippedError.new(nil, self) if failure!(e)
 
-        raise CircuitFailureError.new(nil, self)
+        raise options.error_module::CircuitFailureError.new(nil, self)
       else
         cached_value
       end
