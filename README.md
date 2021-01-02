@@ -827,6 +827,10 @@ Faulty.circuit('api') do |config|
   # circuit to half-open.
   config.cool_down = 300
 
+  # The number of seconds that of history that is considered when calculating
+  # the circuit failure rate.
+  config.evaluation_window = 60
+
   # The errors that will be captured by Faulty and used to trigger circuit
   # state changes.
   config.errors = [StandardError]
