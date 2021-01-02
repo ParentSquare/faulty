@@ -57,13 +57,13 @@ Also see "Release It!: Design and Deploy Production-Ready Software" by
     - [Memory](#memory)
     - [Redis](#redis)
     - [FallbackChain](#fallbackchain)
-    - [Storage::FaultTolerantProxy](#storage--faulttolerantproxy)
-    - [Storage::CircuitProxy](#storage--circuitproxy)
+    - [Storage::FaultTolerantProxy](#storagefaulttolerantproxy)
+    - [Storage::CircuitProxy](#storagecircuitproxy)
   + [Configuring the Cache Backend](#configuring-the-cache-backend)
     - [Null](#null)
     - [Rails](#rails)
-    - [Cache::FaultTolerantProxy](#cache--faulttolerantproxy)
-    - [Cache::CircuitProxy](#cache--circuitproxy)
+    - [Cache::FaultTolerantProxy](#cachefaulttolerantproxy)
+    - [Cache::CircuitProxy](#cachecircuitproxy)
   + [Multiple Configurations](#multiple-configurations)
     - [The default instance](#the-default-instance)
     - [Multiple Instances](#multiple-instances)
@@ -71,7 +71,7 @@ Also see "Release It!: Design and Deploy Production-Ready Software" by
 * [Working with circuits](#working-with-circuits)
   + [Running a Circuit](#running-a-circuit)
     - [With Exceptions](#with-exceptions)
-    - [With Faulty::Result](#with-faulty--result)
+    - [With Faulty::Result](#with-faultyresult)
   + [Specifying the Captured Errors](#specifying-the-captured-errors)
   + [Using the Cache](#using-the-cache)
   + [Configuring the Circuit Threshold](#configuring-the-circuit-threshold)
@@ -454,7 +454,7 @@ failures. If a storage backend is failing, all circuits will be treated as
 closed regardless of locks or previous history.
 
 If you wish your application to use a secondary storage backend instead of
-failing closed, use [`FallbackChain`](#storage--fallbackchain).
+failing closed, use [`FallbackChain`](#storagefallbackchain).
 
 #### Storage::CircuitProxy
 
@@ -466,8 +466,8 @@ is a wrapper that uses an independent in-memory circuit to track failures to
 storage backends. If a storage backend fails continuously, it will be
 temporarily disabled and raise `Faulty::CircuitError`s.
 
-Typically this is used inside a [`FaultTolerantProxy`](#storage--faulttolerantproxy) or
-[`FallbackChain`](#storage--fallbackchain) so that these storage failures are handled
+Typically this is used inside a [`FaultTolerantProxy`](#storagefaulttolerantproxy) or
+[`FallbackChain`](#storagefallbackchain) so that these storage failures are handled
 gracefully.
 
 ### Configuring the Cache Backend
@@ -514,7 +514,7 @@ cache backends. If a cache backend fails continuously, it will be
 temporarily disabled and raise `Faulty::CircuitError`s.
 
 Typically this is used inside a
-[`FaultTolerantProxy`](#cache--faulttolerantproxy) so that these cache failures
+[`FaultTolerantProxy`](#cachefaulttolerantproxy) so that these cache failures
 are handled gracefully.
 
 ### Multiple Configurations
@@ -827,8 +827,8 @@ Faulty.circuit('api') do |config|
   # circuit to half-open.
   config.cool_down = 300
 
-  # The number of seconds that of history that is considered when calculating
-  # the circuit failure rate.
+  # The number of seconds of history that is considered when calculating
+  # the circuit failure rate. The length of the sliding window.
   config.evaluation_window = 60
 
   # The errors that will be captured by Faulty and used to trigger circuit
@@ -847,7 +847,8 @@ Faulty.circuit('api') do |config|
   # The minimum number of runs required before a circuit can trip
   config.sample_threshold = 3
 
-  # The storage backend for this circuit. Inherits the Faulty instance storage by default
+  # The storage backend for this circuit. Inherits the Faulty instance storage
+  # by default
   config.storage = Faulty.options.storage
 end
 ```
@@ -1139,7 +1140,7 @@ but there are and have been many other options:
 
 - [semian](https://github.com/Shopify/semian): A resiliency toolkit that
   includes circuit breakers. It uses adapters to auto-wire circuits, and it has
-  only host-local storage by design.
+  only in-memory storage by design.
 - [circuitbox](https://github.com/yammer/circuitbox): Similar in design to
   Faulty, but with a different API. It uses Moneta to abstract circuit storage
   to allow any key-value store.
