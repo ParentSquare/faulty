@@ -96,6 +96,18 @@ RSpec.describe Faulty do
     expect(instance.circuit('test', cool_down: 302).options.cool_down).to eq(404)
   end
 
+  it 'passes options from itself to new circuits' do
+    instance = described_class.new(
+      circuit_defaults: { sample_threshold: 14, cool_down: 30 }
+    )
+    circuit = instance.circuit('test', cool_down: 10)
+    expect(circuit.options.cache).to eq(instance.options.cache)
+    expect(circuit.options.storage).to eq(instance.options.storage)
+    expect(circuit.options.notifier).to eq(instance.options.notifier)
+    expect(circuit.options.sample_threshold).to eq(14)
+    expect(circuit.options.cool_down).to eq(10)
+  end
+
   it 'converts symbol names to strings' do
     expect(instance.circuit(:test)).to eq(instance.circuit('test'))
   end

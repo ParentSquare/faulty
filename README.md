@@ -287,6 +287,10 @@ Faulty.init do |config|
   # AutoWire API docs for more details.
   config.cache = Faulty::Cache::Default.new
 
+  # A hash of default options to be used when creating new Circuits.
+  # See Circuit Options below for a full list of these
+  config.circuit_defaults = {}
+
   # The storage backend. By default, Faulty uses an in-memory store. For most
   # production applications, you'll want a more robust backend. Faulty also
   # provides Faulty::Storage::Redis for this.

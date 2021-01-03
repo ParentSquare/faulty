@@ -129,6 +129,10 @@ class Faulty
   #   @return [Cache::Interface] A cache backend if you want
   #     to use Faulty's cache support. Automatically wrapped in a
   #     {Cache::AutoWire}. Default `Cache::AutoWire.new`.
+  # @!attribute [r] circuit_defaults
+  #   @see Circuit::Options
+  #   @return [Hash] A hash of default options to be used when creating
+  #     new circuits. See {Circuit::Options} for a full list.
   # @!attribute [r] storage
   #   @see Storage::AutoWire
   #   @return [Storage::Interface, Array<Storage::Interface>] The storage
@@ -142,6 +146,7 @@ class Faulty
   #     ignored.
   Options = Struct.new(
     :cache,
+    :circuit_defaults,
     :storage,
     :listeners,
     :notifier
@@ -157,11 +162,12 @@ class Faulty
     end
 
     def required
-      %i[cache storage notifier]
+      %i[cache circuit_defaults storage notifier]
     end
 
     def defaults
       {
+        circuit_defaults: {},
         listeners: [Events::LogListener.new]
       }
     end
@@ -200,8 +206,8 @@ class Faulty
   # @return [Circuit] The new circuit or the existing circuit if it already exists
   def circuit(name, **options, &block)
     name = name.to_s
-    options = options.merge(circuit_options)
     @circuits.compute_if_absent(name) do
+      options = circuit_options.merge(options)
       Circuit.new(name, **options, &block)
     end
   end
@@ -219,6 +225,8 @@ class Faulty
   #
   # @return [Hash] The circuit options
   def circuit_options
-    @options.to_h.select { |k, _v| %i[cache storage notifier].include?(k) }
+    @options.to_h
+      .select { |k, _v| %i[cache storage notifier].include?(k) }
+      .merge(options.circuit_defaults)
   end
 end
