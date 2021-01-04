@@ -10,4 +10,7 @@ RSpec.describe Faulty::Storage::Memory do
     storage.entry(circuit, 9, true)
     expect(storage.history(circuit).map { |h| h[0] }).to eq([1, 2, 9])
   end
+
+  it 'expires circuits after ttl'
+  it 'does not expire locks'
 end

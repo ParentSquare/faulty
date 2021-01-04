@@ -30,32 +30,39 @@ class Faulty
       # @!attribute [r] max_sample_size
       #   @return [Integer] The number of cache run entries to keep in memory
       #     for each circuit. Default `100`.
-      Options = Struct.new(:max_sample_size) do
+      Options = Struct.new(:granularity, :max_sample_size, :ttl) do
         include ImmutableOptions
 
         private
 
         def defaults
-          { max_sample_size: 100 }
+          {
+            granularity: 600,
+            max_sample_size: 100,
+            ttl: 3600
+          }
+        end
+
+        def required
+          members
         end
       end
 
       # The internal object for storing a circuit
       #
       # @private
-      MemoryCircuit = Struct.new(:state, :runs, :opened_at, :lock) do
+      MemoryCircuit = Struct.new(:state, :runs, :opened_at) do
         def initialize
           self.state = Concurrent::Atom.new(:closed)
           self.runs = Concurrent::MVar.new([], dup_on_deref: true)
           self.opened_at = Concurrent::Atom.new(nil)
-          self.lock = nil
         end
 
         # Create a status object from the current circuit state
         #
         # @param circuit_options [Circuit::Options] The circuit options object
         # @return [Status] The newly created status
-        def status(circuit_options)
+        def status(circuit_options, lock:)
           status = nil
           runs.borrow do |locked_runs|
             status = Faulty::Status.from_entries(
@@ -74,8 +81,12 @@ class Faulty
       # @param options [Hash] Attributes for {Options}
       # @yield [Options] For setting options in a block
       def initialize(**options, &block)
-        @circuits = Concurrent::Map.new
         @options = Options.new(options, &block)
+        @circuits = ExpiringMemoryStore.new(
+          granularity: @options.granularity,
+          ttl: @options.ttl
+        )
+        @locks = Concurrent::Map.new
       end
 
       # Add an entry to storage
@@ -89,7 +100,7 @@ class Faulty
           runs.push([time, success])
           runs.shift if runs.size > options.max_sample_size
         end
-        memory.status(circuit.options)
+        memory.status(circuit.options, lock: @locks[circuit.name])
       end
 
       # Mark a circuit as open
@@ -131,8 +142,7 @@ class Faulty
       # @param (see Interface#lock)
       # @return (see Interface#lock)
       def lock(circuit, state)
-        memory = fetch(circuit)
-        memory.lock = state
+        @locks[circuit.name] = state
       end
 
       # Unlock a circuit
@@ -141,8 +151,7 @@ class Faulty
       # @param (see Interface#unlock)
       # @return (see Interface#unlock)
       def unlock(circuit)
-        memory = fetch(circuit)
-        memory.lock = nil
+        @locks.delete(circuit.name)
       end
 
       # Reset a circuit
@@ -152,6 +161,7 @@ class Faulty
       # @return (see Interface#reset)
       def reset(circuit)
         @circuits.delete(circuit.name)
+        @locks.delete(circuit.name)
       end
 
       # Get the status of a circuit
@@ -160,7 +170,7 @@ class Faulty
       # @param (see Interface#status)
       # @return (see Interface#status)
       def status(circuit)
-        fetch(circuit).status(circuit.options)
+        fetch(circuit).status(circuit.options, lock: @locks[circuit.name])
       end
 
       # Get the circuit history up to `max_sample_size`
