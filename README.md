@@ -3,6 +3,7 @@
 [![Gem Version](https://badge.fury.io/rb/faulty.svg)](https://badge.fury.io/rb/faulty)
 [![CI](https://github.com/ParentSquare/faulty/workflows/CI/badge.svg)](https://github.com/ParentSquare/faulty/actions?query=workflow%3ACI+branch%3Amaster)
 [![Code Quality](https://app.codacy.com/project/badge/Grade/16bb1df1569a4ddba893a866673dac2a)](https://www.codacy.com/gh/ParentSquare/faulty/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ParentSquare/faulty&amp;utm_campaign=Badge_Grade)
+[![Code Coverage](https://app.codacy.com/project/badge/Coverage/16bb1df1569a4ddba893a866673dac2a)](https://www.codacy.com/gh/ParentSquare/faulty/dashboard?utm_source=github.com&utm_medium=referral&utm_content=ParentSquare/faulty&utm_campaign=Badge_Coverage)
 [![Inline docs](http://inch-ci.org/github/ParentSquare/faulty.svg?branch=master)](http://inch-ci.org/github/ParentSquare/faulty)
 
 Fault-tolerance tools for ruby based on [circuit-breakers][martin fowler].
