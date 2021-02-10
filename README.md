@@ -1019,8 +1019,8 @@ skipped, and a `Faulty::OpenCircuitError` will be raised.
 
 After the cool-down has elapsed, the circuit enters the half-open state. In this
 state, Faulty allows a single execution of the block as a test run. If the test
-run succeeds, the circuit is fully opened and the circuit state is reset. If the
-test run fails, the circuit is closed and the cool-down is reset.
+run succeeds, the circuit is fully closed and the circuit state is reset. If the
+test run fails, the circuit is opened and the cool-down is reset.
 
 Each time the circuit changes state or executes the block, events are raised
 that are sent to the Faulty event notifier. The notifier should be used to track
