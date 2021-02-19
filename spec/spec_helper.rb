@@ -21,6 +21,8 @@ end
 
 require 'faulty'
 require 'timecop'
+require 'redis'
+require 'connection_pool'
 
 require_relative 'support/concurrency'
 

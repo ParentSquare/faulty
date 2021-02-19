@@ -157,8 +157,8 @@ class Faulty
 
     def finalize
       self.notifier ||= Events::Notifier.new(listeners || [])
-      self.storage = Storage::AutoWire.new(storage, notifier: notifier)
-      self.cache = Cache::AutoWire.new(cache, notifier: notifier)
+      self.storage = Storage::AutoWire.wrap(storage, notifier: notifier)
+      self.cache = Cache::AutoWire.wrap(cache, notifier: notifier)
     end
 
     def required
