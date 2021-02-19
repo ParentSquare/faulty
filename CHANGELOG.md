@@ -1,3 +1,19 @@
+## Release v0.4.0
+
+* Switch from Travis CI to GitHub actions #11 justinhoward
+* Only run rubocop for Ruby 2.7 in CI #12 justinhoward
+* Explicitly add support for Redis 3 and 4 #15 justinhoward
+* Allow setting default circuit options on Faulty instances #16 justinhoward
+* Switch to codacy for quality metrics #17 justinhoward
+* Small logic fix to README #19 silasb
+* Fix Redis storage dependency on ConnectionPool #21 justinhoward
+* Allow passing custom circuit to AutoWire #22 justinhoward
+
+### Breaking Changes
+
+AutoWire.new is replaced with AutoWire.wrap and no longer creates an instance
+of AutoWire.
+
 ## Release v0.3.0
 
 * Add tools for backend fault-tolerance #10
