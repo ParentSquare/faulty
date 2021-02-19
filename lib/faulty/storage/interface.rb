@@ -14,7 +14,8 @@ class Faulty
       # @param circuit [Circuit] The circuit that ran
       # @param time [Integer] The unix timestamp for the run
       # @param success [Boolean] True if the run succeeded
-      # @return [Status] The circuit status after the run is added
+      # @return [Array<Array>] An array of the new history tuples after adding
+      #   the new entry, see {#history}
       def entry(circuit, time, success)
         raise NotImplementedError
       end

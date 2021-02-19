@@ -26,8 +26,8 @@ RSpec.describe Faulty::Storage::FallbackChain do
 
   context 'with #entry' do
     it 'calls only first storage when successful' do
-      status = succeeding_chain.entry(circuit, Faulty.current_time, true)
-      expect(status.state).to eq(:closed)
+      entries = succeeding_chain.entry(circuit, Faulty.current_time, true)
+      expect(entries.size).to eq(1)
       expect(memory.history(circuit).size).to eq(1)
       expect(memory2.history(circuit).size).to eq(0)
     end
@@ -35,8 +35,8 @@ RSpec.describe Faulty::Storage::FallbackChain do
     it 'falls back to next storage after failure' do
       expect(notifier).to receive(:notify)
         .with(:storage_failure, circuit: circuit, action: :entry, error: be_a(RuntimeError))
-      status = partially_failing_chain.entry(circuit, Faulty.current_time, true)
-      expect(status.state).to eq(:closed)
+      entries = partially_failing_chain.entry(circuit, Faulty.current_time, true)
+      expect(entries.size).to eq(1)
       expect(memory.history(circuit).size).to eq(1)
 
       expect(notifier).to receive(:notify)
@@ -48,8 +48,8 @@ RSpec.describe Faulty::Storage::FallbackChain do
       expect(notifier).to receive(:notify)
         .with(:storage_failure, circuit: circuit, action: :entry, error: be_a(RuntimeError))
         .twice
-      status = long_chain.entry(circuit, Faulty.current_time, true)
-      expect(status.state).to eq(:closed)
+      entries = long_chain.entry(circuit, Faulty.current_time, true)
+      expect(entries.size).to eq(1)
       expect(memory.history(circuit).size).to eq(1)
 
       expect(notifier).to receive(:notify)
