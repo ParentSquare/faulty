@@ -384,7 +384,7 @@ class Faulty
       end
 
       def check_pool_options!
-        if options.client.is_a?(ConnectionPool)
+        if options.client.class.name == 'ConnectionPool'
           timeout = options.client.instance_variable_get(:@timeout)
           warn(<<~MSG) if timeout > 2
             Faulty recommends setting ConnectionPool timeouts <= 2 to prevent
