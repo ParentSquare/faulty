@@ -94,7 +94,7 @@ class Faulty
         @storage.entry(circuit, time, success)
       rescue StandardError => e
         options.notifier.notify(:storage_failure, circuit: circuit, action: :entry, error: e)
-        stub_status(circuit)
+        []
       end
 
       # Safely mark a circuit as open
