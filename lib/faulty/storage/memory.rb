@@ -89,7 +89,7 @@ class Faulty
           runs.push([time, success])
           runs.shift if runs.size > options.max_sample_size
         end
-        memory.status(circuit.options)
+        memory.runs.value
       end
 
       # Mark a circuit as open

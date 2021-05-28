@@ -219,9 +219,11 @@ class Faulty
       cached_value = cache_read(cache)
       # return cached unless cached.nil?
       return cached_value if !cached_value.nil? && !cache_should_refresh?(cache)
-      return run_skipped(cached_value) unless status.can_run?
 
-      run_exec(cached_value, cache, &block)
+      current_status = status
+      return run_skipped(cached_value) unless current_status.can_run?
+
+      run_exec(current_status, cached_value, cache, &block)
     end
 
     # Force the circuit to stay open until unlocked
@@ -298,16 +300,16 @@ class Faulty
     # @param cached_value The cached value if one is available
     # @param cache_key [String, nil] The cache key if one is given
     # @return The run result
-    def run_exec(cached_value, cache_key)
+    def run_exec(status, cached_value, cache_key)
       result = yield
-      success!
+      success!(status)
       cache_write(cache_key, result)
       result
     rescue *options.errors => e
       raise if options.exclude.any? { |ex| e.is_a?(ex) }
 
       if cached_value.nil?
-        raise options.error_module::CircuitTrippedError.new(nil, self) if failure!(e)
+        raise options.error_module::CircuitTrippedError.new(nil, self) if failure!(status, e)
 
         raise options.error_module::CircuitFailureError.new(nil, self)
       else
@@ -316,8 +318,9 @@ class Faulty
     end
 
     # @return [Boolean] True if the circuit transitioned to closed
-    def success!
-      status = storage.entry(self, Faulty.current_time, true)
+    def success!(status)
+      entries = storage.entry(self, Faulty.current_time, true)
+      status = Status.from_entries(entries, **status.to_h)
       closed = false
       closed = close! if should_close?(status)
 
@@ -326,8 +329,9 @@ class Faulty
     end
 
     # @return [Boolean] True if the circuit transitioned to open
-    def failure!(error)
-      status = storage.entry(self, Faulty.current_time, false)
+    def failure!(status, error)
+      entries = storage.entry(self, Faulty.current_time, false)
+      status = Status.from_entries(entries, **status.to_h)
       options.notifier.notify(:circuit_failure, circuit: self, status: status, error: error)
 
       opened = if status.half_open?
