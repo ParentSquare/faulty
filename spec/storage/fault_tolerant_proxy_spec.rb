@@ -25,12 +25,12 @@ RSpec.describe Faulty::Storage::FaultTolerantProxy do
     expect(inner_storage.history(circuit).size).to eq(1)
   end
 
-  it 'returns stub status when adding entry fails' do
+  it 'returns empty history when adding entry fails' do
     expect(notifier).to receive(:notify)
       .with(:storage_failure, circuit: circuit, action: :entry, error: instance_of(RuntimeError))
-    status = described_class.new(failing_storage, notifier: notifier)
+    history = described_class.new(failing_storage, notifier: notifier)
       .entry(circuit, Faulty.current_time, true)
-    expect(status.stub).to eq(true)
+    expect(history).to eq([])
   end
 
   it 'returns stub status when getting #status' do
