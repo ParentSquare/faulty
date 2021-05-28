@@ -580,6 +580,14 @@ principal to any other registered Faulty instance:
 Faulty[:api].circuit('api_circuit').run { 'ok' }
 ```
 
+You can also create and register a Faulty instance in one step:
+
+```ruby
+Faulty.register(:api) do |config|
+  # This accepts the same options as Faulty.init
+end
+```
+
 #### Standalone Instances
 
 If you choose, you can use Faulty instances without registering them globally by
