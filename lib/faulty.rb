@@ -75,11 +75,20 @@ class Faulty
     # return value if you need to know whether the instance already existed.
     #
     # @param name [Symbol] The name of the instance to register
-    # @param instance [Faulty] The instance to register
+    # @param instance [Faulty] The instance to register. If nil, a new instance
+    #   will be created from the given options or block.
+    # @param config [Hash] Attributes for {Faulty::Options}
+    # @yield [Faulty::Options] For setting options in a block
     # @return [Faulty, nil] The previously-registered instance of that name if
     #   it already existed, otherwise nil.
-    def register(name, instance)
+    def register(name, instance = nil, **config, &block)
       raise UninitializedError unless @instances
+
+      if instance
+        raise ArgumentError, 'Do not give config options if an instance is given' if !config.empty? || block
+      else
+        instance = new(**config, &block)
+      end
 
       @instances.put_if_absent(name, instance)
     end

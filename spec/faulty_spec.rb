@@ -61,6 +61,26 @@ RSpec.describe Faulty do
     expect(described_class[:new_instance]).to eq(instance)
   end
 
+  it 'registers a named instance with a block' do
+    described_class.init(nil)
+    described_class.register(:new_instance) { |c| c.circuit_defaults = { sample_threshold: 6 } }
+    expect(described_class[:new_instance].options.circuit_defaults[:sample_threshold]).to eq(6)
+  end
+
+  it 'registers a named instance with options' do
+    described_class.init(nil)
+    described_class.register(:new_instance, circuit_defaults: { sample_threshold: 7 })
+    expect(described_class[:new_instance].options.circuit_defaults[:sample_threshold]).to eq(7)
+  end
+
+  it 'raises an error when passed instance with options' do
+    described_class.init(nil)
+    instance = described_class.new
+    expect do
+      described_class.register(:new_instance, instance, circuit_defaults: { sample_threshold: 7 })
+    end.to raise_error(ArgumentError, 'Do not give config options if an instance is given')
+  end
+
   it 'memoizes named instances' do
     described_class.init
     instance1 = described_class.new
