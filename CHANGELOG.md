@@ -1,3 +1,7 @@
+## Release v0.5.1
+
+* Fix Storage::FaultTolerantProxy to return empty history on entries fail #26 justinhoward
+
 ## Release v0.5.0
 
 * Allow creating a new Faulty instance in Faulty#register #24 justinhoward
