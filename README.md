@@ -81,6 +81,8 @@ Also see "Release It!: Design and Deploy Production-Ready Software" by
   + [Circuit Options](#circuit-options)
   + [Listing Circuits](#listing-circuits)
   + [Locking Circuits](#locking-circuits)
+* [Patches](#patches)
+  + [Patch::Redis](#patchredis)
 * [Event Handling](#event-handling)
   + [CallbackListener](#callbacklistener)
   + [Other Built-in Listeners](#other-built-in-listeners)
@@ -220,6 +222,10 @@ users = Faulty.circuit(:api).try_run do
   api.users
 end.or_default([])
 ```
+
+If you want to globally wrap your core dependencies, like your cache or
+database, you may want to look at [Patches](#patches), which can automatically
+wrap your connections in a Faulty circuit.
 
 See [Running a Circuit](#running-a-circuit) for more in-depth examples. Also,
 make sure you have proper [Event Handlers](#event-handling) setup so that you
@@ -922,6 +928,59 @@ Faulty.circuit('fixed').unlock!
 Locking or unlocking a circuit has no concurrency guarantees, so it's not
 recommended to lock or unlock circuits from production code. Instead, locks are
 intended as an emergency tool for troubleshooting and debugging.
+
+## Patches
+
+For certain core dependencies like a cache or a database connection, it is
+inconvenient to wrap every call in its own circuit. Faulty provides some patches
+to wrap these calls in a circuit automatically. To use a patch, it first needs
+to be loaded. Since patches modify third-party code, they are not automatically
+required with the Faulty gem, so they need to be required individually.
+
+```ruby
+require 'faulty'
+require 'faulty/patch/redis'
+```
+
+Or require them in your `Gemfile`
+
+```ruby
+gem 'faulty', require: %w[faulty faulty/patch/redis]
+```
+
+### Patch::Redis
+
+[`Faulty::Patch::Redis`](https://www.rubydoc.info/gems/faulty/Faulty/Patch/Redis)
+protects a Redis client with an internal circuit. Pass a `:faulty` key along
+with your connection options to enable the circuit breaker.
+
+Keep in mind that when using this patch, you'll most likely want to use the
+in-memory circuit storage adapter and not the Redis storage adapter. That way
+if Redis fails, your circuit storage doesn't also fail.
+
+```ruby
+require 'faulty/patch/redis'
+
+redis = Redis.new(url: 'redis://localhost:6379', faulty: {
+  # The name for the redis circuit
+  name: 'redis'
+
+  # The faulty instance to use
+  # This can also be a registered faulty instance or a constant name. See API
+  # docs for more details
+  instance: Faulty.default
+
+  # By default, circuit errors will be subclasses of Redis::BaseError
+  # To disable this behavior, set patch_errors to false and Faulty
+  # will raise its default errors
+  patch_errors: true
+})
+redis.connect # raises Faulty::CircuitError if connection fails
+
+# If the faulty key is not given, no circuit is used
+redis = Redis.new(url: 'redis://localhost:6379')
+redis.connect # not protected by a circuit
+```
 
 ## Event Handling
 

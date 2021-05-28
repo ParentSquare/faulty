@@ -20,6 +20,7 @@ if ENV['COVERAGE'] || ENV['CI']
 end
 
 require 'faulty'
+require 'faulty/patch/redis'
 require 'timecop'
 require 'redis'
 require 'connection_pool'

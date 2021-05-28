@@ -9,6 +9,7 @@ require 'faulty/cache'
 require 'faulty/circuit'
 require 'faulty/error'
 require 'faulty/events'
+require 'faulty/patch'
 require 'faulty/result'
 require 'faulty/status'
 require 'faulty/storage'
@@ -66,7 +67,7 @@ class Faulty
     def [](name)
       raise UninitializedError unless @instances
 
-      @instances[name]
+      @instances[name.to_s]
     end
 
     # Register an instance to the global Faulty state
@@ -90,7 +91,7 @@ class Faulty
         instance = new(**config, &block)
       end
 
-      @instances.put_if_absent(name, instance)
+      @instances.put_if_absent(name.to_s, instance)
     end
 
     # Get the options for the default instance

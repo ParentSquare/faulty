@@ -8,6 +8,9 @@ AllCops:
 Layout/ArgumentAlignment:
   EnforcedStyle: with_fixed_indentation
 
+Layout/CaseIndentation:
+  EnforcedStyle: end
+
 Layout/ParameterAlignment:
   EnforcedStyle: with_fixed_indentation
 
