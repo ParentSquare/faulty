@@ -1,3 +1,16 @@
+## Release v0.5.0
+
+* Allow creating a new Faulty instance in Faulty#register #24 justinhoward
+* Add support for patches to core dependencies starting with redis #14 justinhoward
+* Improve storage #entries performance by returning entries #23 justinhoward
+
+### Breaking Changes
+
+* Faulty #[] no longer differentiates between symbols and strings when accessing
+  Faulty instances
+* Faulty::Storage::Interface must now return a history array instead of a
+  circuit status object. Custom storage backends must be updated.
+
 ## Release v0.4.0
 
 * Switch from Travis CI to GitHub actions #11 justinhoward
