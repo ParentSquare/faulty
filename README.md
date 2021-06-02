@@ -1000,7 +1000,7 @@ events. The full list of events is available from
 - `circuit_reopened` - A circuit execution cause the circuit to reopen from
   half-open. Payload: `circuit`, `error`.
 - `circuit_skipped` - A circuit execution was skipped because the circuit is
-  closed. Payload: `circuit`
+  open. Payload: `circuit`
 - `circuit_success` - A circuit execution was successful. Payload: `circuit`,
   `status`
 - `storage_failure` - A storage backend raised an error. Payload `circuit` (can
