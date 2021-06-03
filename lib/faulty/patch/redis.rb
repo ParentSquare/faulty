@@ -8,13 +8,9 @@ class Faulty
     #
     # This module is not required by default
     #
-    # Pass a `:faulty` key into your redis connection options to enable
-    # circuit protection. This hash is a hash of circuit options for the
-    # internal circuit. The hash may also have a `:instance` key, which is the
-    # faulty instance to create the circuit from. `Faulty.default` will be
-    # used if no instance is given. The `:instance` key can also reference a
-    # registered Faulty instance or a global constantso that it can be set
-    # from config files. See {Patch.circuit_from_hash}.
+    # Pass a `:faulty` key into your MySQL connection options to enable
+    # circuit protection. See {Patch.circuit_from_hash} for the available
+    # options.
     #
     # @example
     #   require 'faulty/patch/redis'
