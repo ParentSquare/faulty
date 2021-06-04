@@ -39,7 +39,7 @@ class Faulty
         Thread.current[faulty_running_key] = true
         @faulty_circuit.run { yield }
       ensure
-        Thread.current[faulty_running_key] = false
+        Thread.current[faulty_running_key] = nil
       end
     end
   end
