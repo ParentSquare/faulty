@@ -1,3 +1,11 @@
+## Release v0.6.0
+
+* docs, use correct state in description for skipped event #27 senny
+* Fix CI to set REDIS_VERSION correctly #31 justinhoward
+* Fix a potential memory leak in patches #32 justinhoward
+* Capture an error for BUSY redis backend when patched #30 justinhoward
+* Add a patch for mysql2 #28 justinhoward
+
 ## Release v0.5.1
 
 * Fix Storage::FaultTolerantProxy to return empty history on entries fail #26 justinhoward
