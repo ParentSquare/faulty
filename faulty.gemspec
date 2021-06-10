@@ -26,7 +26,6 @@ Gem::Specification.new do |spec|
   # Only essential development tools and dependencies go here.
   # Other non-essential development dependencies go in the Gemfile.
   spec.add_development_dependency 'connection_pool', '~> 2.0'
-  spec.add_development_dependency 'honeybadger', '>= 2.0'
   spec.add_development_dependency 'redis', '>= 3.0'
   spec.add_development_dependency 'rspec', '~> 3.8'
   # 0.81 is the last rubocop version with Ruby 2.3 support

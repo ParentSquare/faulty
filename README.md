@@ -83,6 +83,7 @@ Also see "Release It!: Design and Deploy Production-Ready Software" by
   + [Locking Circuits](#locking-circuits)
 * [Patches](#patches)
   + [Patch::Redis](#patchredis)
+  + [Patch::Mysql2](#patchmysql2)
 * [Event Handling](#event-handling)
   + [CallbackListener](#callbacklistener)
   + [Other Built-in Listeners](#other-built-in-listeners)
@@ -948,15 +949,40 @@ Or require them in your `Gemfile`
 gem 'faulty', require: %w[faulty faulty/patch/redis]
 ```
 
+For core dependencies you'll most likely want to use the in-memory circuit
+storage adapter and not the Redis storage adapter. That way if Redis fails, your
+circuit storage doesn't also fail, causing cascading failures.
+
+For example, you can use a separate Faulty instance to manage your Mysql2
+circuit:
+
+```ruby
+# Setup your default config. This can use the Redis backend if you prefer
+Faulty.init do |config|
+  # ...
+end
+
+Faulty.register(:mysql) do |config|
+  # Here we decide to set some circuit defaults more useful for
+  # frequent database calls
+  config.circuit_defaults = {
+    cool_down: 20.0,
+    evaluation_window: 40,
+    sample_threshold: 25
+  }
+end
+
+# Now we can use our "mysql" faulty instance when constructing a Mysql2 client
+Mysql2::Client.new(host: '127.0.0.1', faulty: { instance: 'mysql2' })
+```
+
 ### Patch::Redis
 
 [`Faulty::Patch::Redis`](https://www.rubydoc.info/gems/faulty/Faulty/Patch/Redis)
 protects a Redis client with an internal circuit. Pass a `:faulty` key along
 with your connection options to enable the circuit breaker.
 
-Keep in mind that when using this patch, you'll most likely want to use the
-in-memory circuit storage adapter and not the Redis storage adapter. That way
-if Redis fails, your circuit storage doesn't also fail.
+The Redis patch supports the Redis gem versions 3 and 4.
 
 ```ruby
 require 'faulty/patch/redis'
@@ -980,6 +1006,43 @@ redis.connect # raises Faulty::CircuitError if connection fails
 # If the faulty key is not given, no circuit is used
 redis = Redis.new(url: 'redis://localhost:6379')
 redis.connect # not protected by a circuit
+```
+
+### Patch::Mysql2
+
+[`Faulty::Patch::Mysql2`](https://www.rubydoc.info/gems/faulty/Faulty/Patch/Mysql2)
+protects a `Mysql2::Client` with an internal circuit. Pass a `:faulty` key along
+with your connection options to enable the circuit breaker.
+
+Faulty supports the mysql2 gem versions 0.5 and greater.
+
+Note: Although Faulty supports Ruby 2.3 in general, the Mysql2 patch is not
+fully supported on Ruby 2.3. It may work for you, but use it at your own risk.
+
+```ruby
+require 'faulty/patch/mysql2'
+
+mysql = Mysql2::Client.new(host: '127.0.0.1', faulty: {
+  # The name for the Mysql2 circuit
+  name: 'mysql2'
+
+  # The faulty instance to use
+  # This can also be a registered faulty instance or a constant name. See API
+  # docs for more details
+  instance: Faulty.default
+
+  # By default, circuit errors will be subclasses of
+  # Mysql2::Error::ConnectionError
+  # To disable this behavior, set patch_errors to false and Faulty
+  # will raise its default errors
+  patch_errors: true
+})
+
+mysql.query('SELECT * FROM users') # raises Faulty::CircuitError if connection fails
+
+# If the faulty key is not given, no circuit is used
+mysql = Mysql2::Client.new(host: '127.0.0.1')
+mysql.query('SELECT * FROM users') # not protected by a circuit
 ```
 
 ## Event Handling
