@@ -21,8 +21,6 @@ class Faulty
       ) do
         include ImmutableOptions
 
-        private
-
         def required
           %i[notifier]
         end

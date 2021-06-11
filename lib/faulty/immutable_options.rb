@@ -5,17 +5,22 @@ class Faulty
   module ImmutableOptions
     # @param hash [Hash] A hash of attributes to initialize with
     # @yield [self] Yields itself to the block to set options before freezing
-    def initialize(hash)
-      defaults.merge(hash).each { |key, value| self[key] = value }
-      yield self if block_given?
-      finalize
-      required.each do |key|
-        raise ArgumentError, "Missing required attribute #{key}" if self[key].nil?
-      end
-      freeze
+    def initialize(hash, &block)
+      setup(defaults.merge(hash), &block)
     end
 
-    private
+    def dup_with(hash, &block)
+      dup.setup(hash, &block)
+    end
+
+    def setup(hash)
+      hash&.each { |key, value| self[key] = value }
+      yield self if block_given?
+      finalize
+      guard_required!
+      freeze
+      self
+    end
 
     # A hash of default values to set before yielding to the block
     #
@@ -35,6 +40,15 @@ class Faulty
     #
     # @return [void]
     def finalize
+    end
+
+    private
+
+    # Raise an error if required options are missing
+    def guard_required!
+      required.each do |key|
+        raise ArgumentError, "Missing required attribute #{key}" if self[key].nil?
+      end
     end
   end
 end

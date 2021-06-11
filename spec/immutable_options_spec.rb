@@ -5,8 +5,6 @@ RSpec.describe Faulty::ImmutableOptions do
     Struct.new(:name, :cache, :storage) do
       include Faulty::ImmutableOptions
 
-      private
-
       def defaults
         { cache: 'default_cache' }
       end
