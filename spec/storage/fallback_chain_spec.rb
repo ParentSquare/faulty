@@ -130,6 +130,20 @@ RSpec.describe Faulty::Storage::FallbackChain do
     end
   end
 
+  describe '#get_options' do
+    let(:action) { :get_options }
+    let(:args) { [circuit] }
+
+    it_behaves_like 'chained method'
+  end
+
+  describe '#set_options' do
+    let(:action) { :set_options }
+    let(:args) { [circuit, { cool_down: 5 }] }
+
+    it_behaves_like 'fan-out method'
+  end
+
   describe '#open' do
     let(:action) { :open }
     let(:args) { [circuit, Faulty.current_time] }

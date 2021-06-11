@@ -27,7 +27,6 @@ class Faulty
     CACHE_REFRESH_SUFFIX = '.faulty_refresh'
 
     attr_reader :name
-    attr_reader :options
 
     # Options for {Circuit}
     #
@@ -82,6 +81,9 @@ class Faulty
     #   @return [Storage::Interface] The storage backend. Default
     #   `Storage::Memory.new`. Unlike {Faulty#initialize}, this is not wrapped
     #    in {Storage::AutoWire} by default.
+    # @!attribute [r] registry
+    #   @return [CircuitRegistry] For use by {Faulty} instances to facilitate
+    #   memoization of circuits.
     Options = Struct.new(
       :cache_expires_in,
       :cache_refreshes_after,
@@ -95,11 +97,22 @@ class Faulty
       :exclude,
       :cache,
       :notifier,
-      :storage
+      :storage,
+      :registry
     ) do
       include ImmutableOptions
 
-      private
+      # Get the options stored in the storage backend
+      #
+      # @return [Hash] A hash of stored options
+      def for_storage
+        {
+          cool_down: cool_down,
+          evaluation_window: evaluation_window,
+          rate_threshold: rate_threshold,
+          sample_threshold: sample_threshold
+        }
+      end
 
       def defaults
         {
@@ -150,7 +163,59 @@ class Faulty
       raise ArgumentError, 'name must be a String' unless name.is_a?(String)
 
       @name = name
-      @options = Options.new(options, &block)
+      @given_options = Options.new(options, &block)
+      @pulled_options = nil
+      @options_pushed = false
+    end
+
+    # Get the options for this circuit
+    #
+    # If this circuit has been run, these will the options exactly as given
+    # to {.new}. However, if this circuit has not yet been run, these options
+    # will be supplemented by the last-known options from the circuit storage.
+    #
+    # Once a circuit is run, the given options are pushed to circuit storage to
+    # be persisted.
+    #
+    # This is to allow circuit objects to behave as expected in contexts where
+    # the exact options for a circuit are not known such as an admin dashboard
+    # or in a debug console.
+    #
+    # Note that this distinction isn't usually important unless using
+    # distributed circuit storage like the Redis storage backend.
+    #
+    # @example
+    #   Faulty.circuit('api', cool_down: 5).run { api.users }
+    #   # This status will be calculated using the cool_down of 5 because
+    #   # the circuit was already run
+    #   Faulty.circuit('api').status
+    #
+    # @example
+    #   # This status will be calculated using the cool_down in circuit storage
+    #   # if it is available instead of using the default value.
+    #   Faulty.circuit('api').status
+    #
+    # @example
+    #   # For typical usage, this behaves as expected, but note that it's
+    #   # possible to run into some unexpected behavior when creating circuits
+    #   # in unusual ways.
+    #
+    #   # For example, this status will be calculated using the cool_down in
+    #   # circuit storage if it is available despite the given value of 5.
+    #   Faulty.circuit('api', cool_down: 5).status
+    #   Faulty.circuit('api').run { api.users }
+    #   # However now, after the circuit is run, status will be calculated
+    #   # using the given cool_down of 5 and the value of 5 will be pushed
+    #   # permanently to circuit storage
+    #   Faulty.circuit('api').status
+    #
+    # @return [Options] The resolved options
+    def options
+      return @given_options if @options_pushed
+      return @pulled_options if @pulled_options
+
+      stored = @given_options.storage.get_options(self)
+      @pulled_options = stored ? @given_options.dup_with(stored) : @given_options
     end
 
     # Run the circuit as with {#run}, but return a {Result}
@@ -204,6 +269,8 @@ class Faulty
     # a second cool down period. However, if the circuit completes successfully,
     # the circuit will be closed and reset to its initial state.
     #
+    # When this is run, the given options are persisted to the storage backend.
+    #
     # @param cache [String, nil] A cache key, or nil if caching is not desired
     # @yield The block to protect with this circuit
     # @raise If the block raises an error not in the error list, or if the error
@@ -216,6 +283,7 @@ class Faulty
     #   circuit to trip
     # @return The return value of the block
     def run(cache: nil, &block)
+      push_options
       cached_value = cache_read(cache)
       # return cached unless cached.nil?
       return cached_value if !cached_value.nil? && !cache_should_refresh?(cache)
@@ -256,6 +324,8 @@ class Faulty
     #
     # @return [self]
     def reset!
+      @options_pushed = false
+      @pulled_options = nil
       storage.reset(self)
       self
     end
@@ -283,6 +353,25 @@ class Faulty
     end
 
     private
+
+    # Push the given options to circuit storage and set those as the current
+    # options
+    #
+    # @return [void]
+    def push_options
+      return if @options_pushed
+
+      @pulled_options = nil
+      @options_pushed = true
+      resolved = options.registry&.resolve(self)
+      if resolved
+        # If another circuit instance was resolved, don't store these options
+        # Instead, copy the options from that circuit as if we were given those
+        @given_options = resolved.options
+      else
+        storage.set_options(self, @given_options.for_storage)
+      end
+    end
 
     # Process a skipped run
     #
@@ -431,11 +520,13 @@ class Faulty
 
     # Alias to the storage engine from options
     #
+    # Always returns the value from the given options
+    #
     # @return [Storage::Interface]
     def storage
       return Faulty::Storage::Null.new if Faulty.disabled?
 
-      options.storage
+      @given_options.storage
     end
   end
 end

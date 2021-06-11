@@ -6,7 +6,7 @@ RSpec.describe Faulty::Patch do
   end
 
   describe '.circuit_from_hash' do
-    let(:faulty) { Faulty.new }
+    let(:faulty) { Faulty.new(listeners: []) }
 
     let(:error_module) do
       stub_const('TestErrors', Module.new)
@@ -21,6 +21,7 @@ RSpec.describe Faulty::Patch do
 
     it 'can specify an instance' do
       circuit = described_class.circuit_from_hash('test', { instance: faulty })
+      circuit.run { 'ok' }
       expect(faulty.circuit('test')).to eq(circuit)
     end
 
@@ -31,11 +32,13 @@ RSpec.describe Faulty::Patch do
 
     it 'can specify a custom name' do
       circuit = described_class.circuit_from_hash('test', { instance: faulty, name: 'my_test' })
+      circuit.run { 'ok' }
       expect(faulty.circuit('my_test')).to eq(circuit)
     end
 
     it 'passes circuit options to the circuit' do
       circuit = described_class.circuit_from_hash('test', { instance: faulty, sample_threshold: 10 })
+      circuit.run { 'ok' }
       expect(circuit.options.sample_threshold).to eq(10)
     end
 
@@ -100,10 +103,11 @@ RSpec.describe Faulty::Patch do
     end
 
     context 'with Faulty.default' do
-      before { Faulty.init }
+      before { Faulty.init(listeners: []) }
 
       it 'can be run with empty hash' do
         circuit = described_class.circuit_from_hash('test', {})
+        circuit.run { 'ok' }
         expect(Faulty.circuit('test')).to eq(circuit)
       end
     end
@@ -113,11 +117,13 @@ RSpec.describe Faulty::Patch do
 
       it 'gets instance by constant name' do
         circuit = described_class.circuit_from_hash('test', { instance: { constant: :MY_FAULTY } })
+        circuit.run { 'ok' }
         expect(faulty.circuit('test')).to eq(circuit)
       end
 
       it 'can pass in string keys and constant name' do
         circuit = described_class.circuit_from_hash('test', { 'instance' => { 'constant' => 'MY_FAULTY' } })
+        circuit.run { 'ok' }
         expect(faulty.circuit('test')).to eq(circuit)
       end
     end
@@ -126,6 +132,7 @@ RSpec.describe Faulty::Patch do
       it 'gets registered instance by symbol' do
         Faulty.register(:my_faulty, faulty)
         circuit = described_class.circuit_from_hash('test', { instance: :my_faulty })
+        circuit.run { 'ok' }
         expect(faulty.circuit('test')).to eq(circuit)
       end
     end

@@ -23,8 +23,6 @@ class Faulty
       ) do
         include ImmutableOptions
 
-        private
-
         def required
           %i[notifier]
         end
@@ -84,6 +82,30 @@ class Faulty
       #   @param (see Interface#list)
       #   @return (see Interface#list)
       def_delegators :@storage, :lock, :unlock, :reset, :history, :list
+
+      # Get circuit options safely
+      #
+      # @see Interface#get_options
+      # @param (see Interface#get_options)
+      # @return (see Interface#get_options)
+      def get_options(circuit)
+        @storage.get_options(circuit)
+      rescue StandardError => e
+        options.notifier.notify(:storage_failure, circuit: circuit, action: :get_options, error: e)
+        nil
+      end
+
+      # Set circuit options safely
+      #
+      # @see Interface#get_options
+      # @param (see Interface#set_options)
+      # @return (see Interface#set_options)
+      def set_options(circuit, stored_options)
+        @storage.set_options(circuit, stored_options)
+      rescue StandardError => e
+        options.notifier.notify(:storage_failure, circuit: circuit, action: :set_options, error: e)
+        nil
+      end
 
       # Add a history entry safely
       #

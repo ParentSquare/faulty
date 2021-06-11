@@ -11,6 +11,17 @@ class Faulty
         @instance
       end
 
+      # @param (see Interface#get_options)
+      # @return (see Interface#get_options)
+      def get_options(_circuit)
+        {}
+      end
+
+      # @param (see Interface#set_options)
+      # @return (see Interface#set_options)
+      def set_options(_circuit, _stored_options)
+      end
+
       # @param (see Interface#entry)
       # @return (see Interface#entry)
       def entry(_circuit, _time, _success)

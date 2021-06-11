@@ -57,8 +57,6 @@ class Faulty
       ) do
         include ImmutableOptions
 
-        private
-
         def defaults
           {
             key_prefix: 'faulty',
@@ -85,7 +83,35 @@ class Faulty
       def initialize(**options, &block)
         @options = Options.new(options, &block)
 
+        # Ensure JSON is available since we don't explicitly require it
+        JSON # rubocop:disable Lint/Void
+
         check_client_options!
+      end
+
+      # Get the options stored for circuit
+      #
+      # @see Interface#get_options
+      # @param (see Interface#get_options)
+      # @return (see Interface#get_options)
+      def get_options(circuit)
+        json = redis { |r| r.get(options_key(circuit)) }
+        return if json.nil?
+
+        JSON.parse(json, symbolize_names: true)
+      end
+
+      # Store the options for a circuit
+      #
+      # These will be serialized as JSON
+      #
+      # @see Interface#set_options
+      # @param (see Interface#set_options)
+      # @return (see Interface#set_options)
+      def set_options(circuit, stored_options)
+        redis do |r|
+          r.set(options_key(circuit), JSON.dump(stored_options), ex: options.circuit_ttl)
+        end
       end
 
       # Add an entry to storage
@@ -173,7 +199,8 @@ class Faulty
           r.del(
             entries_key(circuit),
             opened_at_key(circuit),
-            lock_key(circuit)
+            lock_key(circuit),
+            options_key(circuit)
           )
           r.set(state_key(circuit), 'closed', ex: options.circuit_ttl)
         end
@@ -237,6 +264,11 @@ class Faulty
 
       def ckey(circuit, *parts)
         key('circuit', circuit.name, *parts)
+      end
+
+      # @return [String] The key for circuit options
+      def options_key(circuit)
+        ckey(circuit, 'options')
       end
 
       # @return [String] The key for circuit state
