@@ -26,8 +26,6 @@ class Faulty
       ) do
         include ImmutableOptions
 
-        private
-
         def finalize
           raise ArgumentError, 'The circuit or notifier option must be given' unless notifier || circuit
 
@@ -47,7 +45,20 @@ class Faulty
         @options = Options.new(options, &block)
       end
 
-      %i[entry open reopen close lock unlock reset status history list].each do |method|
+      %i[
+        get_options
+        set_options
+        entry
+        open
+        reopen
+        close
+        lock
+        unlock
+        reset
+        status
+        history
+        list
+      ].each do |method|
         define_method(method) do |*args|
           options.circuit.run { @storage.public_send(method, *args) }
         end

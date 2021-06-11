@@ -69,15 +69,32 @@ RSpec.describe Faulty::Storage::FaultTolerantProxy do
         .with(:storage_failure, circuit: circuit, action: action, error: instance_of(RuntimeError))
       result = described_class.new(failing_storage, notifier: notifier)
         .public_send(action, *args)
-      expect(result).to eq(false)
+      expect(result).to eq(retval)
     end
 
     it_behaves_like 'delegated action'
   end
 
+  describe '#get_options' do
+    let(:action) { :get_options }
+    let(:args) { [circuit] }
+    let(:retval) { nil }
+
+    it_behaves_like 'safely wrapped action'
+  end
+
+  describe '#set_options' do
+    let(:action) { :set_options }
+    let(:args) { [circuit, { cool_down: 3 }] }
+    let(:retval) { nil }
+
+    it_behaves_like 'safely wrapped action'
+  end
+
   describe '#open' do
     let(:action) { :open }
     let(:args) { [circuit, Faulty.current_time] }
+    let(:retval) { false }
 
     it_behaves_like 'safely wrapped action'
   end
@@ -85,6 +102,7 @@ RSpec.describe Faulty::Storage::FaultTolerantProxy do
   describe '#reopen' do
     let(:action) { :reopen }
     let(:args) { [circuit, Faulty.current_time, Faulty.current_time - 300] }
+    let(:retval) { false }
 
     it_behaves_like 'safely wrapped action'
   end
@@ -92,6 +110,7 @@ RSpec.describe Faulty::Storage::FaultTolerantProxy do
   describe '#close' do
     let(:action) { :close }
     let(:args) { [circuit] }
+    let(:retval) { false }
 
     it_behaves_like 'safely wrapped action'
   end

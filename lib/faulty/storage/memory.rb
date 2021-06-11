@@ -33,8 +33,6 @@ class Faulty
       Options = Struct.new(:max_sample_size) do
         include ImmutableOptions
 
-        private
-
         def defaults
           { max_sample_size: 100 }
         end
@@ -43,7 +41,7 @@ class Faulty
       # The internal object for storing a circuit
       #
       # @private
-      MemoryCircuit = Struct.new(:state, :runs, :opened_at, :lock) do
+      MemoryCircuit = Struct.new(:state, :runs, :opened_at, :lock, :options) do
         def initialize
           self.state = Concurrent::Atom.new(:closed)
           self.runs = Concurrent::MVar.new([], dup_on_deref: true)
@@ -76,6 +74,24 @@ class Faulty
       def initialize(**options, &block)
         @circuits = Concurrent::Map.new
         @options = Options.new(options, &block)
+      end
+
+      # Get the options stored for circuit
+      #
+      # @see Interface#get_options
+      # @param (see Interface#get_options)
+      # @return (see Interface#get_options)
+      def get_options(circuit)
+        fetch(circuit).options
+      end
+
+      # Store the options for a circuit
+      #
+      # @see Interface#set_options
+      # @param (see Interface#set_options)
+      # @return (see Interface#set_options)
+      def set_options(circuit, stored_options)
+        fetch(circuit).options = stored_options
       end
 
       # Add an entry to storage

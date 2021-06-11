@@ -140,8 +140,6 @@ class Faulty
       failure_rate >= options.rate_threshold
     end
 
-    private
-
     def finalize
       raise ArgumentError, "state must be a symbol in #{self.class}::STATES" unless STATES.include?(state)
       unless lock.nil? || LOCKS.include?(lock)

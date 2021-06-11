@@ -23,6 +23,7 @@ require 'faulty'
 require 'faulty/patch/redis'
 require 'timecop'
 require 'redis'
+require 'json'
 require 'connection_pool'
 
 begin

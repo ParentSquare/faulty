@@ -26,8 +26,6 @@ class Faulty
       ) do
         include ImmutableOptions
 
-        private
-
         def finalize
           raise ArgumentError, 'The circuit or notifier option must be given' unless notifier || circuit
 
