@@ -8,11 +8,19 @@ class Faulty
     #
     # The honeybadger gem must be available.
     class HoneybadgerListener
+      HONEYBADGER_EVENTS = Set[
+        :circuit_failure,
+        :circuit_opened,
+        :circuit_reopened,
+        :cache_failure,
+        :storage_failure
+      ].freeze
+
       # (see ListenerInterface#handle)
       def handle(event, payload)
-        return unless EVENTS.include?(event)
+        return unless HONEYBADGER_EVENTS.include?(event)
 
-        send(event, payload) if respond_to?(event, true)
+        send(event, payload)
       end
 
       private

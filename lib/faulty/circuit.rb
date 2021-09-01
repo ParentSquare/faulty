@@ -319,12 +319,10 @@ class Faulty
 
     # @return [Boolean] True if the circuit transitioned to closed
     def success!(status)
-      entries = storage.entry(self, Faulty.current_time, true)
-      status = Status.from_entries(entries, **status.to_h)
-      closed = false
-      closed = close! if should_close?(status)
+      storage.entry(self, Faulty.current_time, true)
+      closed = close! if status.half_open?
 
-      options.notifier.notify(:circuit_success, circuit: self, status: status)
+      options.notifier.notify(:circuit_success, circuit: self)
       closed
     end
 
@@ -368,16 +366,6 @@ class Faulty
       closed = storage.close(self)
       options.notifier.notify(:circuit_closed, circuit: self) if closed
       closed
-    end
-
-    # Test whether we should close after a successful run
-    #
-    # Currently this is always true if the circuit is half-open, which is the
-    # traditional behavior for a circuit-breaker
-    #
-    # @return [Boolean] True if we should close the circuit from half-open
-    def should_close?(status)
-      status.half_open?
     end
 
     # Read from the cache if it is configured
