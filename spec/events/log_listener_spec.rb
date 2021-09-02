@@ -33,15 +33,15 @@ RSpec.describe Faulty::Events::LogListener do
     end
 
     it 'logs to Rails logger by default' do
-      described_class.new.handle(:circuit_success, circuit: circuit, status: status)
-      expect(logs).to end_with('DEBUG -- : Circuit succeeded: test state=closed')
+      described_class.new.handle(:circuit_success, circuit: circuit)
+      expect(logs).to end_with('DEBUG -- : Circuit succeeded: test')
     end
   end
 
   it 'logs to stderr by default if Rails is not present' do
     expect do
-      described_class.new.handle(:circuit_success, circuit: circuit, status: status)
-    end.to output(/DEBUG -- : Circuit succeeded: test state=closed$/).to_stderr
+      described_class.new.handle(:circuit_success, circuit: circuit)
+    end.to output(/DEBUG -- : Circuit succeeded: test$/).to_stderr
   end
 
   # cache_failure
@@ -102,8 +102,8 @@ RSpec.describe Faulty::Events::LogListener do
   end
 
   it 'logs circuit_success' do
-    listener.handle(:circuit_success, circuit: circuit, status: status)
-    expect(logs).to end_with('DEBUG -- : Circuit succeeded: test state=closed')
+    listener.handle(:circuit_success, circuit: circuit)
+    expect(logs).to end_with('DEBUG -- : Circuit succeeded: test')
   end
 
   it 'logs storage_failure with circuit' do

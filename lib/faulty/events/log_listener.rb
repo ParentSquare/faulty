@@ -36,7 +36,7 @@ class Faulty
       end
 
       def circuit_success(payload)
-        log(:debug, 'Circuit succeeded', payload[:circuit].name, state: payload[:status].state)
+        log(:debug, 'Circuit succeeded', payload[:circuit].name)
       end
 
       def circuit_failure(payload)
@@ -81,7 +81,9 @@ class Faulty
       def log(level, msg, action, extra = {})
         @logger.public_send(level) do
           extra_str = extra.map { |k, v| "#{k}=#{v}" }.join(' ')
-          "#{msg}: #{action} #{extra_str}"
+          extra_str = " #{extra_str}" unless extra_str.empty?
+
+          "#{msg}: #{action}#{extra_str}"
         end
       end
     end
