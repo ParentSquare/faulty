@@ -1,3 +1,7 @@
+## Release v0.7.1
+
+- Fix success event crash in log listener #37 justinhoward
+
 ## Release v0.7.0
 
 * Add initial benchmarks and performance improvements #36 justinhoward
