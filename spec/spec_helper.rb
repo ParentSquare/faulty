@@ -49,6 +49,7 @@ RSpec.configure do |config|
 
   config.after do
     Timecop.return
+    Faulty.enable!
   end
 
   config.include Faulty::Specs::Concurrency

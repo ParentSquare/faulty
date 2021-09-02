@@ -128,6 +128,33 @@ class Faulty
     def current_time
       Time.now.to_i
     end
+
+    # Disable Faulty circuits
+    #
+    # This allows circuits to run as if they were always closed. Does
+    # not disable caching.
+    #
+    # Intended for use in tests, or to disable Faulty entirely for an
+    # environment.
+    #
+    # @return [void]
+    def disable!
+      @disabled = true
+    end
+
+    # Re-enable Faulty if disabled with {#disable!}
+    #
+    # @return [void]
+    def enable!
+      @disabled = false
+    end
+
+    # Check whether Faulty was disabled with {#disable!}
+    #
+    # @return [Boolean] True if disabled
+    def disabled?
+      @disabled == true
+    end
   end
 
   attr_reader :options
