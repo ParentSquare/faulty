@@ -28,6 +28,13 @@ RSpec.describe Faulty::Cache::CircuitProxy do
     expect { proxy.read('foo') }.to raise_error(Faulty::CircuitTrippedError)
   end
 
+  it 'does not notify for circuit sucesses by default' do
+    expect(notifier).not_to receive(:notify)
+    backend = Faulty::Cache::Mock.new
+    proxy = described_class.new(backend, notifier: notifier)
+    proxy.read('foo')
+  end
+
   it 'delegates fault_tolerant? directly' do
     backend = instance_double(Faulty::Cache::Mock)
     marker = Object.new

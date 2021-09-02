@@ -33,7 +33,7 @@ class Faulty
 
           self.circuit ||= Circuit.new(
             Faulty::Storage::CircuitProxy.name,
-            notifier: notifier,
+            notifier: Events::FilterNotifier.new(notifier, exclude: %i[circuit_success]),
             cache: Cache::Null.new
           )
         end
