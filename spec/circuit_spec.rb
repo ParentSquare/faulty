@@ -233,6 +233,18 @@ RSpec.context :circuits do
       expect(result).to eq('new')
     end
 
+    it 'runs open circuit when disabled' do
+      Faulty.disable!
+      expect(open_circuit.run { 'hi' }).to eq('hi')
+    end
+
+    it 'reads from cache even when disabled' do
+      circuit.run(cache: 'test_cache') { 'cached' }
+      Faulty.disable!
+      result = circuit.run(cache: 'test_cache') { 'ok' }
+      expect(result).to eq('cached')
+    end
+
     context 'with error_module' do
       let(:options) do
         {

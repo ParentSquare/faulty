@@ -88,6 +88,7 @@ Also see "Release It!: Design and Deploy Production-Ready Software" by
   + [CallbackListener](#callbacklistener)
   + [Other Built-in Listeners](#other-built-in-listeners)
   + [Custom Listeners](#custom-listeners)
+* [Disabling Faulty Globally](#disabling-faulty-globally)
 * [How it Works](#how-it-works)
   + [Caching](#caching)
   + [Fault Tolerance](#fault-tolerance)
@@ -1123,6 +1124,21 @@ Faulty.init do |config|
   config.listeners = [MyFaultyListener.new]
 end
 ```
+
+## Disabling Faulty Globally
+
+For testing or for some environments, you may wish to disable Faulty circuits
+at a global level.
+
+```ruby
+Faulty.disable!
+```
+
+This only affects the process where you run the `#disable!` method and it does
+not affect the stored state of circuits.
+
+Faulty will **still use the cache** even when disabled. If you also want to
+disable the cache, configure Faulty to use a `Faulty::Cache::Null` cache.
 
 ## How it Works
 

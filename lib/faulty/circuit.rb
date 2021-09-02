@@ -433,6 +433,8 @@ class Faulty
     #
     # @return [Storage::Interface]
     def storage
+      return Faulty::Storage::Null.new if Faulty.disabled?
+
       options.storage
     end
   end

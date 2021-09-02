@@ -156,4 +156,11 @@ RSpec.describe Faulty do
     instance = described_class.new(cache: Faulty::Cache::Rails.new(nil))
     expect(instance.options.cache).to be_a(Faulty::Cache::FaultTolerantProxy)
   end
+
+  it 'can be disabled and enabled' do
+    described_class.disable!
+    expect(described_class.disabled?).to eq(true)
+    described_class.enable!
+    expect(described_class.disabled?).to eq(false)
+  end
 end
