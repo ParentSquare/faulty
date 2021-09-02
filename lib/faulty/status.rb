@@ -64,10 +64,17 @@ class Faulty
     #   sample_size
     # @return [Status]
     def self.from_entries(entries, **hash)
+      window_start = Faulty.current_time - hash[:options].evaluation_window
+      size = entries.size
+      i = 0
       failures = 0
       sample_size = 0
-      entries.each do |(time, success)|
-        next unless time > Faulty.current_time - hash[:options].evaluation_window
+
+      # This is a hot loop, and while is slightly faster than each
+      while i < size
+        time, success = entries[i]
+        i += 1
+        next unless time > window_start
 
         sample_size += 1
         failures += 1 unless success

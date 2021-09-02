@@ -23,7 +23,7 @@ class Faulty
       # @param (see ListenerInterface#handle)
       # @return [void]
       def handle(event, payload)
-        return unless EVENTS.include?(event)
+        return unless EVENT_SET.include?(event)
         return unless @handlers.key?(event)
 
         @handlers[event].each do |handler|

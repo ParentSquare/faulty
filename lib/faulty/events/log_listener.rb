@@ -16,9 +16,9 @@ class Faulty
 
       # (see ListenerInterface#handle)
       def handle(event, payload)
-        return unless EVENTS.include?(event)
+        return unless EVENT_SET.include?(event)
 
-        send(event, payload) if respond_to?(event, true)
+        send(event, payload)
       end
 
       private
@@ -79,8 +79,10 @@ class Faulty
       end
 
       def log(level, msg, action, extra = {})
-        extra_str = extra.map { |k, v| "#{k}=#{v}" }.join(' ')
-        logger.public_send(level, "#{msg}: #{action} #{extra_str}")
+        @logger.public_send(level) do
+          extra_str = extra.map { |k, v| "#{k}=#{v}" }.join(' ')
+          "#{msg}: #{action} #{extra_str}"
+        end
       end
     end
   end

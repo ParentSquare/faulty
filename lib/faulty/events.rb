@@ -17,6 +17,8 @@ class Faulty
       circuit_success
       storage_failure
     ].freeze
+
+    EVENT_SET = Set.new(EVENTS)
   end
 end
 

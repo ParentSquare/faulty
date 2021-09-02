@@ -1,0 +1,52 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'bundler/setup'
+require 'benchmark'
+require 'faulty'
+
+n = 100_000
+
+puts "Starting circuit benchmarks with #{n} iterations each\n\n"
+
+Benchmark.bm(25) do |b|
+  in_memory = Faulty.new(listeners: [])
+  b.report('memory storage') do
+    n.times { in_memory.circuit(:memory).run { true } }
+  end
+
+  b.report('memory storage failures') do
+    n.times do
+      begin
+        in_memory.circuit(:memory_fail, sample_threshold: n + 1).run { raise 'fail' }
+      rescue StandardError
+        # Expected to raise here
+      end
+    end
+  end
+
+  in_memory_large = Faulty.new(listeners: [], storage: Faulty::Storage::Memory.new(max_sample_size: 1000))
+  b.report('large memory storage') do
+    n.times { in_memory_large.circuit(:memory_large).run { true } }
+  end
+end
+
+n = 1_000_000
+
+puts "\n\nStarting extra benchmarks with #{n} iterations each\n\n"
+
+Benchmark.bm(25) do |b|
+  in_memory = Faulty.new(listeners: [])
+
+  log_listener = Faulty::Events::LogListener.new(Logger.new(File::NULL))
+  log_circuit = in_memory.circuit(:log_listener)
+  log_status = log_circuit.status
+  b.report('log listener success') do
+    n.times { log_listener.handle(:circuit_success, circuit: log_circuit, status: log_status) }
+  end
+
+  log_error = StandardError.new('test error')
+  b.report('log listener failure') do
+    n.times { log_listener.handle(:circuit_failure, error: log_error, circuit: log_circuit, status: log_status) }
+  end
+end
