@@ -1,6 +1,11 @@
+## Release v0.7.2
+
+* Add Faulty.disable! for disabling globally #38 justinhoward
+* Suppress circuit_success for proxy circuits #39 justinhoward
+
 ## Release v0.7.1
 
-- Fix success event crash in log listener #37 justinhoward
+* Fix success event crash in log listener #37 justinhoward
 
 ## Release v0.7.0
 
