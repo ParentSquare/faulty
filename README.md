@@ -1064,8 +1064,7 @@ events. The full list of events is available from
   half-open. Payload: `circuit`, `error`.
 - `circuit_skipped` - A circuit execution was skipped because the circuit is
   open. Payload: `circuit`
-- `circuit_success` - A circuit execution was successful. Payload: `circuit`,
-  `status`
+- `circuit_success` - A circuit execution was successful. Payload: `circuit`
 - `storage_failure` - A storage backend raised an error. Payload `circuit` (can
   be nil), `action`, `error`
 
