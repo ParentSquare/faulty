@@ -1,3 +1,12 @@
+## Release v0.7.0
+
+* Add initial benchmarks and performance improvements #36 justinhoward
+
+### Breaking Changes
+
+The `circuit_success` event no longer contains the status value. Computing this
+value was causing performance problems.
+
 ## Release v0.6.0
 
 * docs, use correct state in description for skipped event #27 senny
