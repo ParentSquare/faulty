@@ -10,6 +10,7 @@ require 'faulty/circuit'
 require 'faulty/error'
 require 'faulty/events'
 require 'faulty/patch'
+require 'faulty/circuit_registry'
 require 'faulty/result'
 require 'faulty/status'
 require 'faulty/storage'
@@ -226,8 +227,8 @@ class Faulty
   # @param options [Hash] Attributes for {Options}
   # @yield [Options] For setting options in a block
   def initialize(**options, &block)
-    @circuits = Concurrent::Map.new
     @options = Options.new(options, &block)
+    @registry = CircuitRegistry.new(circuit_options)
   end
 
   # Create or retrieve a circuit
@@ -243,10 +244,7 @@ class Faulty
   # @return [Circuit] The new circuit or the existing circuit if it already exists
   def circuit(name, **options, &block)
     name = name.to_s
-    @circuits.compute_if_absent(name) do
-      options = circuit_options.merge(options)
-      Circuit.new(name, **options, &block)
-    end
+    @registry.retrieve(name, options, &block)
   end
 
   # Get a list of all circuit names

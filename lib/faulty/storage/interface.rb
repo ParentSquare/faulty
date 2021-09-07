@@ -6,6 +6,29 @@ class Faulty
     #
     # This is for documentation only and is not loaded
     class Interface
+      # Get the options stored for circuit
+      #
+      # They should be returned exactly as given by {#set_options}
+      #
+      # @return [Hash] A hash of the options stored by {#set_options}. The keys
+      #   must be symbols.
+      def get_options(circuit)
+        raise NotImplementedError
+      end
+
+      # Store the options for a circuit
+      #
+      # They should be returned exactly as given by {#set_options}
+      #
+      # @param circuit [Circuit] The circuit to set options for
+      # @param options [Hash<Symbol, Object>] A hash of symbol option names to
+      #   circuit options. These option values are guranteed to be primive
+      #   values.
+      # @return [void]
+      def set_options(circuit, stored_options)
+        raise NotImplementedError
+      end
+
       # Add a circuit run entry to storage
       #
       # The backend may choose to store this in whatever manner it chooses as
@@ -99,7 +122,7 @@ class Faulty
       # Reset the circuit to a fresh state
       #
       # Clears all circuit status including entries, state, locks,
-      # opened_at, and any other values that would affect Status.
+      # opened_at, options, and any other values that would affect Status.
       #
       # No concurrency gurantees are provided for resetting
       #

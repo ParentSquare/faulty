@@ -245,6 +245,38 @@ RSpec.context :circuits do
       expect(result).to eq('cached')
     end
 
+    it 'initially fetches available options from storage' do
+      storage.set_options(circuit, cool_down: 5)
+      expect(circuit.options.cool_down).to eq(5)
+    end
+
+    it 'stores options in storage when run' do
+      circuit.run { 'ok' }
+      expect(storage.get_options(circuit)[:cool_down]).to eq(300)
+    end
+
+    it 'updates options from stored to given after running' do
+      circuit = Faulty::Circuit.new('test', **options, cool_down: 7)
+      storage.set_options(circuit, cool_down: 5)
+      expect(circuit.options.cool_down).to eq(5)
+      circuit.run { 'ok' }
+      expect(circuit.options.cool_down).to eq(7)
+    end
+
+    it 'gets status without setting options' do
+      circuit.status
+      expect(storage.get_options(circuit)).to eq(nil)
+    end
+
+    it 'locks circuit without setting options' do
+      circuit.lock_open!
+      expect(storage.get_options(circuit)).to eq(nil)
+    end
+
+    it 'gets default options if not stored' do
+      expect(circuit.options.cool_down).to eq(300)
+    end
+
     context 'with error_module' do
       let(:options) do
         {

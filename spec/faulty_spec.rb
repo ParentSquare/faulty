@@ -116,13 +116,27 @@ RSpec.describe Faulty do
     expect(described_class.current_time).to eq(1_577_836_800)
   end
 
-  it 'memoizes circuits' do
-    expect(instance.circuit('test')).to eq(instance.circuit('test'))
+  it 'does not memoize circuits before they are run' do
+    expect(instance.circuit('test')).not_to eq(instance.circuit('test'))
   end
 
-  it 'keeps options passed to the first instance and ignores others' do
-    instance.circuit('test', cool_down: 404)
+  it 'memoizes circuits once run' do
+    circuit = instance.circuit('test')
+    circuit.run { 'ok' }
+    expect(instance.circuit('test')).to eq(circuit)
+  end
+
+  it 'keeps options passed to the first memoized instance and ignores others' do
+    instance.circuit('test', cool_down: 404).run { 'ok' }
     expect(instance.circuit('test', cool_down: 302).options.cool_down).to eq(404)
+  end
+
+  it 'replaces own circuit options from the first-run circuit' do
+    test1 = instance.circuit('test', cool_down: 123)
+    test2 = instance.circuit('test', cool_down: 456)
+    test1.run { 'ok' }
+    test2.run { 'ok' }
+    expect(test2.options.cool_down).to eq(123)
   end
 
   it 'passes options from itself to new circuits' do
@@ -138,7 +152,9 @@ RSpec.describe Faulty do
   end
 
   it 'converts symbol names to strings' do
-    expect(instance.circuit(:test)).to eq(instance.circuit('test'))
+    circuit = instance.circuit(:test)
+    circuit.run { 'ok' }
+    expect(instance.circuit('test')).to eq(circuit)
   end
 
   it 'lists circuit names' do

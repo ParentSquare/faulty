@@ -30,8 +30,6 @@ class Faulty
       ) do
         include ImmutableOptions
 
-        private
-
         def required
           %i[notifier]
         end
@@ -47,6 +45,24 @@ class Faulty
       def initialize(storages, **options, &block)
         @storages = storages
         @options = Options.new(options, &block)
+      end
+
+      # Get options from the first available storage backend
+      #
+      # @param (see Interface#get_options)
+      # @return (see Interface#get_options)
+      def get_options(circuit)
+        send_chain(:get_options, circuit) do |e|
+          options.notifier.notify(:storage_failure, circuit: circuit, action: :get_options, error: e)
+        end
+      end
+
+      # Try to set circuit options on all backends
+      #
+      # @param (see Interface#set_options)
+      # @return (see Interface#set_options)
+      def set_options(circuit, stored_options)
+        send_all(:set_options, circuit, stored_options)
       end
 
       # Create a circuit entry in the first available storage backend

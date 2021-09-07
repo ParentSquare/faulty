@@ -608,7 +608,7 @@ faulty.circuit('standalone_circuit')
 ```
 
 Calling `#circuit` on the instance still has the same memoization behavior that
-`Faulty.circuit` has, so subsequent calls to the same circuit will return a
+`Faulty.circuit` has, so subsequent runs for the same circuit will use a
 memoized circuit object.
 
 
@@ -733,7 +733,7 @@ Both options can even be specified together.
 ```ruby
 Faulty.circuit(
   'api',
-  errors: [ActiveRecord::ActiveRecordError]
+  errors: [ActiveRecord::ActiveRecordError],
   exclude: [ActiveRecord::RecordNotFound, ActiveRecord::RecordNotUnique]
 ).run do
   # This only captures ActiveRecord::ActiveRecordError errors, but not
@@ -813,7 +813,7 @@ the options are retained within the context of each instance. All options given
 after the first call to `Faulty.circuit` (or `Faulty#circuit`) are ignored.
 
 ```ruby
-Faulty.circuit('api', rate_threshold: 0.7)
+Faulty.circuit('api', rate_threshold: 0.7).run { api.call }
 
 # These options are ignored since with already initialized the circuit
 circuit = Faulty.circuit('api', rate_threshold: 0.3)
@@ -821,7 +821,7 @@ circuit.options.rate_threshold # => 0.7
 ```
 
 This is because the circuit objects themselves are internally memoized, and are
-read-only once created.
+read-only once they are run.
 
 The following example represents the defaults for a new circuit:
 
