@@ -1,3 +1,22 @@
+## Release v0.8.0
+
+* Store circuit options in the backend when run #34 justinhoward
+
+### Breaking Changes
+
+* Added #get_options and #set_options to Faulty::Storage::Interface.
+  These will need to be added to any custom backends
+* Faulty::Storage::Interface#reset now requires removing options in
+  addition to other stored values
+* Circuit options will now be supplemented by stored options until they
+  are run. This is technically a breaking change in behavior, although
+  in most cases this should cause the expected result.
+* Circuits are not memoized until they are run. Subsequent calls
+  to Faulty#circuit can return different instances if the circuit is
+  not run. However, once run, options are synchronized between
+  instances, so likely this will not be a breaking change for most
+  cases.
+
 ## Release v0.7.2
 
 * Add Faulty.disable! for disabling globally #38 justinhoward
