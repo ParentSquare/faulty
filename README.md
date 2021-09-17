@@ -1288,11 +1288,12 @@ but there are and have been many other options:
 ### Currently Active
 
 - [semian](https://github.com/Shopify/semian): A resiliency toolkit that
-  includes circuit breakers. It uses adapters to auto-wire circuits, and it has
-  only in-memory storage by design.
-- [circuitbox](https://github.com/yammer/circuitbox): Similar in design to
-  Faulty, but with a different API. It uses Moneta to abstract circuit storage
-  to allow any key-value store.
+  includes circuit breakers. It auto-wires circuits for MySQL, Net::HTTP, and
+  Redis. It has only in-memory storage by design. Its core components are
+  written in C, which allows it to be faster than pure ruby.
+- [circuitbox](https://github.com/yammer/circuitbox): Also uses a block syntax
+  to manually define circuits. It uses Moneta to abstract circuit storage to
+  allow any key-value store.
 
 ### Previous Work
 
@@ -1309,6 +1310,7 @@ but there are and have been many other options:
 
 - Simple API but configurable for advanced users
 - Pluggable storage backends (circuitbox also has this)
+- Patches for common core dependencies (semian also has this)
 - Protected storage access with fallback to safe storage
 - Global, or object-oriented configuration with multiple instances
 - Integrated caching support tailored for fault-tolerance
