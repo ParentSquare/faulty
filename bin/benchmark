@@ -4,12 +4,13 @@
 require 'bundler/setup'
 require 'benchmark'
 require 'faulty'
+require 'redis'
+require 'json'
 
 n = 100_000
-
-puts "Starting circuit benchmarks with #{n} iterations each\n\n"
-
-Benchmark.bm(25) do |b|
+width = 25
+puts "In memory circuits x#{n}"
+Benchmark.bm(width) do |b|
   in_memory = Faulty.new(listeners: [])
   b.report('memory storage') do
     n.times { in_memory.circuit(:memory).run { true } }
@@ -31,11 +32,33 @@ Benchmark.bm(25) do |b|
   end
 end
 
+n = 1000
+puts "\n\Redis circuits x#{n}"
+Benchmark.bm(width) do |b|
+  redis = Faulty.new(listeners: [], storage: Faulty::Storage::Redis.new)
+  b.report('redis storage') do
+    n.times { redis.circuit(:memory).run { true } }
+  end
+
+  b.report('redis storage failures') do
+    n.times do
+      begin
+        redis.circuit(:memory_fail, sample_threshold: n + 1).run { raise 'fail' }
+      rescue StandardError
+        # Expected to raise here
+      end
+    end
+  end
+
+  redis_large = Faulty.new(listeners: [], storage: Faulty::Storage::Redis.new(max_sample_size: 1000))
+  b.report('large redis storage') do
+    n.times { redis_large.circuit(:memory).run { true } }
+  end
+end
+
 n = 1_000_000
-
-puts "\n\nStarting extra benchmarks with #{n} iterations each\n\n"
-
-Benchmark.bm(25) do |b|
+puts "\n\nExtra x#{n}"
+Benchmark.bm(width) do |b|
   in_memory = Faulty.new(listeners: [])
 
   log_listener = Faulty::Events::LogListener.new(Logger.new(File::NULL))
