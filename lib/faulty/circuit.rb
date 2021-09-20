@@ -398,9 +398,9 @@ class Faulty
       raise if options.exclude.any? { |ex| e.is_a?(ex) }
 
       if cached_value.nil?
-        raise options.error_module::CircuitTrippedError.new(nil, self) if failure!(status, e)
+        raise options.error_module::CircuitTrippedError.new(e.message, self) if failure!(status, e)
 
-        raise options.error_module::CircuitFailureError.new(nil, self)
+        raise options.error_module::CircuitFailureError.new(e.message, self)
       else
         cached_value
       end

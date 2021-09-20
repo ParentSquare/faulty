@@ -57,7 +57,7 @@ RSpec.context :circuits do
         circuit.run { raise 'failed' }
       end.to raise_error(
         an_instance_of(Faulty::CircuitFailureError)
-        .and(having_attributes(message: 'circuit error for "test"', circuit: circuit))
+        .and(having_attributes(message: 'circuit error for "test": failed', circuit: circuit))
       )
     end
 
@@ -67,7 +67,7 @@ RSpec.context :circuits do
         circuit.run { raise 'failed' }
       end.to raise_error(
         an_instance_of(Faulty::CircuitTrippedError)
-        .and(having_attributes(message: 'circuit error for "test"', circuit: circuit))
+        .and(having_attributes(message: 'circuit error for "test": failed', circuit: circuit))
       )
     end
 
