@@ -36,10 +36,11 @@ class Faulty
     # @param message [String]
     # @param circuit [Circuit] The circuit that raised the error
     def initialize(message, circuit)
-      message ||= %(circuit error for "#{circuit.name}")
-      @circuit = circuit
+      full_message = %(circuit error for "#{circuit.name}")
+      full_message = %(#{full_message}: #{message}) if message
 
-      super(message)
+      @circuit = circuit
+      super(full_message)
     end
   end
 
