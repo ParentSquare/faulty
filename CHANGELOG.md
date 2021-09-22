@@ -1,3 +1,9 @@
+## Releae v0.8.1
+
+* Add cause message to CircuitTrippedError #40 justinhoward
+* Record failures for cache hits #41 justinhoward
+
+
 ## Release v0.8.0
 
 * Store circuit options in the backend when run #34 justinhoward
