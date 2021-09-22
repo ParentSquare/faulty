@@ -397,10 +397,13 @@ class Faulty
     rescue *options.errors => e
       raise if options.exclude.any? { |ex| e.is_a?(ex) }
 
+      opened = failure!(status, e)
       if cached_value.nil?
-        raise options.error_module::CircuitTrippedError.new(e.message, self) if failure!(status, e)
-
-        raise options.error_module::CircuitFailureError.new(e.message, self)
+        if opened
+          raise options.error_module::CircuitTrippedError.new(e.message, self)
+        else
+          raise options.error_module::CircuitFailureError.new(e.message, self)
+        end
       else
         cached_value
       end

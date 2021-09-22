@@ -196,6 +196,8 @@ RSpec.context :circuits do
       Timecop.freeze(Time.now + 5000)
       result = circuit.run(cache: 'test_cache') { raise 'fail' }
       expect(result).to eq('cached')
+      # Still records the failure
+      expect(circuit.history.last[1]).to eq(false)
     end
 
     it 'raises unwrapped error if error is excluded' do
