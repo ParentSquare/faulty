@@ -1,3 +1,7 @@
+## Releae v0.8.2
+
+* Fix crash for older versions of concurrent-ruby #42 justinhoward
+
 ## Releae v0.8.1
 
 * Add cause message to CircuitTrippedError #40 justinhoward
