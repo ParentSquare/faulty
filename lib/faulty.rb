@@ -2,7 +2,7 @@
 
 require 'securerandom'
 require 'forwardable'
-require 'concurrent-ruby'
+require 'concurrent'
 
 require 'faulty/immutable_options'
 require 'faulty/cache'
