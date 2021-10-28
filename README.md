@@ -1300,7 +1300,8 @@ but there are and have been many other options:
 - [circuit_breaker-ruby](https://github.com/scripbox/circuit_breaker-ruby) (no
   recent activity)
 - [stoplight](https://github.com/orgsync/stoplight) (unmaintained)
-- [circuit_breaker](https://github.com/wooga/circuit_breaker) (archived)
+- [circuit_breaker](https://github.com/wsargent/circuit_breaker) (no recent
+activity)
 - [simple_circuit_breaker](https://github.com/soundcloud/simple_circuit_breaker)
   (unmaintained)
 - [breaker](https://github.com/ahawkins/breaker) (unmaintained)
