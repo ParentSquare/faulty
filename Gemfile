@@ -13,6 +13,8 @@ not_jruby = %i[ruby mingw x64_mingw].freeze
 gem 'activesupport', '>= 4.2'
 gem 'bundler', '>= 1.17', '< 3'
 gem 'byebug', platforms: not_jruby
+# Open source licensed elasticsearch
+gem 'elasticsearch', '> 7', '< 7.14'
 gem 'honeybadger', '>= 2.0'
 gem 'irb', '~> 1.0'
 # Minimum of 0.5.0 for specific error classes

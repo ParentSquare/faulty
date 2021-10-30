@@ -20,6 +20,9 @@ class Faulty
     # protected by the circuit. This is to allow open transactions to be closed
     # if possible.
     #
+    # By default, all circuit errors raised by this patch inherit from
+    # `::Mysql2::Error::ConnectionError`
+    #
     # @example
     #   require 'faulty/patch/mysql2'
     #

@@ -22,6 +22,11 @@ jobs:
         image: redis
         ports:
           - 6379:6379
+      elasticsearch:
+        image: elasticsearch:7.13.4
+        ports:
+          - 9200:9200
+        options: -e="discovery.type=single-node" --health-cmd="curl http://localhost:9200/_cluster/health" --health-interval=3s --health-timeout=5s --health-retries=20
     steps:
       - uses: actions/checkout@v2
       - uses: ruby/setup-ruby@v1

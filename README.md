@@ -84,6 +84,7 @@ Also see "Release It!: Design and Deploy Production-Ready Software" by
 * [Patches](#patches)
   + [Patch::Redis](#patchredis)
   + [Patch::Mysql2](#patchmysql2)
+  + [Patch::Elasticsearch](#patchelasticsearch)
 * [Event Handling](#event-handling)
   + [CallbackListener](#callbacklistener)
   + [Other Built-in Listeners](#other-built-in-listeners)
@@ -1044,6 +1045,38 @@ mysql.query('SELECT * FROM users') # raises Faulty::CircuitError if connection f
 # If the faulty key is not given, no circuit is used
 mysql = Mysql2::Client.new(host: '127.0.0.1')
 mysql.query('SELECT * FROM users') # not protected by a circuit
+```
+
+### Patch::Elasticsearch
+
+[`Faulty::Patch::Elasticsearch`](https://www.rubydoc.info/gems/faulty/Faulty/Patch/Elasticsearch)
+protects a `Elasticsearch::Client` with an internal circuit. Pass a `:faulty` key along
+with your client options to enable the circuit breaker.
+
+```ruby
+require 'faulty/patch/elasticsearch'
+
+es = Elasticsearch::Client.new(url: 'localhost:9200', faulty: {
+  # The name for the Elasticsearch::Client circuit
+  name: 'elasticsearch'
+
+  # The faulty instance to use
+  # This can also be a registered faulty instance or a constant name. See API
+  # docs for more details
+  instance: Faulty.default
+
+  # By default, circuit errors will be subclasses of
+  # Elasticsearch::Transport::Transport::Error
+  # To disable this behavior, set patch_errors to false and Faulty
+  # will raise its default errors
+  patch_errors: true
+})
+```
+
+If you're using Searchkick, you can configure Faulty with `client_options`.
+
+```ruby
+Searchkick.client_options[:faulty] = { name: 'searchkick' }
 ```
 
 ## Event Handling
