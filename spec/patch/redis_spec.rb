@@ -32,27 +32,31 @@ RSpec.describe Faulty::Patch::Redis do
 
   context 'with busy Redis instance' do
     let(:busy_thread) do
-      begin
-        thread = Thread.new do
-          begin
-            ::Redis.new(read_timeout: 10).eval("while true do\n end")
-          rescue Redis::CommandError
-            # Ok when script is killed
-          end
+      event = Concurrent::Event.new
+      thread = Thread.new do
+        begin
+          event.wait(1)
+          # This thread will block here until killed
+          ::Redis.new(timeout: 10).eval("while true do\n end")
+        rescue Redis::CommandError
+          # Ok when script is killed
         end
-        # Try to force new thread to be scheduled
-        sleep 0.5
-        thread
       end
+      # Wait for the new thread to be scheduled
+      # and for the Redis command to be executed
+      event.set
+      sleep(0.5)
+      thread
     end
 
     before do
+      good_redis
       busy_thread
     end
 
     after do
       begin
-        ::Redis.new(read_timeout: 10).call(%w[SCRIPT KILL])
+        ::Redis.new(timeout: 10).call(%w[SCRIPT KILL])
       rescue Redis::CommandError
         # Ok if no script is running
       end
