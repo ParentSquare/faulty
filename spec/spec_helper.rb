@@ -21,6 +21,7 @@ end
 
 require 'faulty'
 require 'faulty/patch/redis'
+require 'faulty/patch/elasticsearch'
 require 'timecop'
 require 'redis'
 require 'json'

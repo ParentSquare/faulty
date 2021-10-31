@@ -6,13 +6,19 @@ RSpec.describe Faulty::Patch::Redis do
   let(:bad_url) { 'redis://127.0.0.1:9876' }
   let(:bad_redis) { ::Redis.new(url: bad_url, faulty: { instance: faulty }) }
   let(:good_redis) { ::Redis.new(faulty: { instance: faulty }) }
-  let(:bad_unpatched_redis) do
+  let(:bad_unpatched_redis) { ::Redis.new(url: bad_url) }
+  let(:bad_redis_unpatched_errors) do
     ::Redis.new(url: bad_url, faulty: { instance: faulty, patch_errors: false })
   end
 
   it 'captures connection error' do
     expect { bad_redis.client.connect }.to raise_error(Faulty::Patch::Redis::CircuitError)
     expect(faulty.circuit('redis').status.failure_rate).to eq(1)
+  end
+
+  it 'does not capture connection error if no circuit' do
+    expect { bad_unpatched_redis.client.connect }.to raise_error(::Redis::BaseConnectionError)
+    expect(faulty.circuit('redis').status.failure_rate).to eq(0)
   end
 
   it 'captures connection error during command' do
@@ -26,7 +32,7 @@ RSpec.describe Faulty::Patch::Redis do
   end
 
   it 'raises unpatched errors if specified' do
-    expect { bad_unpatched_redis.ping }.to raise_error(Faulty::CircuitError)
+    expect { bad_redis_unpatched_errors.ping }.to raise_error(Faulty::CircuitError)
     expect(faulty.circuit('redis').status.failure_rate).to eq(1)
   end
 

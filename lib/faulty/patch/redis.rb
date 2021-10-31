@@ -12,6 +12,9 @@ class Faulty
     # circuit protection. See {Patch.circuit_from_hash} for the available
     # options.
     #
+    # By default, all circuit errors raised by this patch inherit from
+    # `::Redis::BaseConnectionError`
+    #
     # @example
     #   require 'faulty/patch/redis'
     #
