@@ -427,7 +427,11 @@ class Faulty
 
     # @return [Boolean] True if the circuit transitioned to closed
     def success!(status)
-      storage.entry(self, Faulty.current_time, true)
+      if deprecated_entry?
+        storage.entry(self, Faulty.current_time, true, nil)
+      else
+        storage.entry(self, Faulty.current_time, true)
+      end
       closed = close! if status.half_open?
 
       options.notifier.notify(:circuit_success, circuit: self)
@@ -436,8 +440,11 @@ class Faulty
 
     # @return [Boolean] True if the circuit transitioned to open
     def failure!(status, error)
-      entries = storage.entry(self, Faulty.current_time, false)
-      status = Status.from_entries(entries, **status.to_h)
+      status = if deprecated_entry?
+        storage.entry(self, Faulty.current_time, false, status)
+      else
+        deprecated_entry(status)
+      end
       options.notifier.notify(:circuit_failure, circuit: self, status: status, error: error)
 
       opened = if status.half_open?
@@ -449,6 +456,23 @@ class Faulty
       end
 
       opened
+    end
+
+    def deprecated_entry?
+      return @deprecated_entry unless @deprecated_entry.nil?
+
+      @deprecated_entry = storage.method(:entry).arity == 4
+    end
+
+    def deprecated_entry(status)
+      Faulty::Deprecation.deprecate(
+        'Returning entries array from entry',
+        note: 'see Storate::Interface#entry',
+        sunset: '0.9'
+      )
+
+      entries = storage.entry(self, Faulty.current_time, false)
+      Status.from_entries(entries, **status.to_h)
     end
 
     def skipped!

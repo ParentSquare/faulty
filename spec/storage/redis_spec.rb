@@ -16,7 +16,7 @@ RSpec.describe Faulty::Storage::Redis do
     subject(:storage) { described_class.new }
 
     it 'can add an entry' do
-      storage.entry(circuit, Faulty.current_time, true)
+      storage.entry(circuit, Faulty.current_time, true, nil)
       expect(storage.history(circuit).size).to eq(1)
     end
   end
@@ -29,7 +29,7 @@ RSpec.describe Faulty::Storage::Redis do
     end
 
     it 'adds an entry' do
-      storage.entry(circuit, Faulty.current_time, true)
+      storage.entry(circuit, Faulty.current_time, true, nil)
       expect(storage.history(circuit).size).to eq(1)
     end
 

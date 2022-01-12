@@ -35,6 +35,6 @@ RSpec.describe Faulty::Storage::CircuitProxy do
     expect(notifier).not_to receive(:notify)
     backend = Faulty::Storage::Null.new
     proxy = described_class.new(backend, notifier: notifier)
-    proxy.entry(circuit, Faulty.current_time, true)
+    proxy.entry(circuit, Faulty.current_time, true, nil)
   end
 end

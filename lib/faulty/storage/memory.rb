@@ -99,13 +99,14 @@ class Faulty
       # @see Interface#entry
       # @param (see Interface#entry)
       # @return (see Interface#entry)
-      def entry(circuit, time, success)
+      def entry(circuit, time, success, status)
         memory = fetch(circuit)
         memory.runs.borrow do |runs|
           runs.push([time, success])
           runs.shift if runs.size > options.max_sample_size
         end
-        memory.runs.value
+
+        Status.from_entries(memory.runs.value, **status.to_h) if status
       end
 
       # Mark a circuit as open

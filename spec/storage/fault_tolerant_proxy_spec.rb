@@ -21,16 +21,16 @@ RSpec.describe Faulty::Storage::FaultTolerantProxy do
 
   it 'delegates to storage when adding entry succeeds' do
     described_class.new(inner_storage, notifier: notifier)
-      .entry(circuit, Faulty.current_time, true)
+      .entry(circuit, Faulty.current_time, true, nil)
     expect(inner_storage.history(circuit).size).to eq(1)
   end
 
-  it 'returns empty history when adding entry fails' do
+  it 'returns stub status when adding entry fails' do
     expect(notifier).to receive(:notify)
       .with(:storage_failure, circuit: circuit, action: :entry, error: instance_of(RuntimeError))
-    history = described_class.new(failing_storage, notifier: notifier)
-      .entry(circuit, Faulty.current_time, true)
-    expect(history).to eq([])
+    status = described_class.new(failing_storage, notifier: notifier)
+      .entry(circuit, Faulty.current_time, false, Faulty::Status.new(options: circuit.options))
+    expect(status.stub).to eq(true)
   end
 
   it 'returns stub status when getting #status' do

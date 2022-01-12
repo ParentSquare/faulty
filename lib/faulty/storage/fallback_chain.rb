@@ -69,8 +69,8 @@ class Faulty
       #
       # @param (see Interface#entry)
       # @return (see Interface#entry)
-      def entry(circuit, time, success)
-        send_chain(:entry, circuit, time, success) do |e|
+      def entry(circuit, time, success, status)
+        send_chain(:entry, circuit, time, success, status) do |e|
           options.notifier.notify(:storage_failure, circuit: circuit, action: :entry, error: e)
         end
       end

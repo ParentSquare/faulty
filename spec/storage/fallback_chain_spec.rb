@@ -18,6 +18,7 @@ RSpec.describe Faulty::Storage::FallbackChain do
   let(:memory2) { Faulty::Storage::Memory.new }
   let(:notifier) { Faulty::Events::Notifier.new }
   let(:circuit) { Faulty::Circuit.new('test') }
+  let(:init_status) { Faulty::Status.new(options: circuit.options) }
   let(:succeeding_chain) { described_class.new([memory, memory2], notifier: notifier) }
   let(:partially_failing_chain) { described_class.new([failing, memory], notifier: notifier) }
   let(:midway_failure_chain) { described_class.new([memory, failing, memory2], notifier: notifier) }
@@ -26,8 +27,8 @@ RSpec.describe Faulty::Storage::FallbackChain do
 
   context 'with #entry' do
     it 'calls only first storage when successful' do
-      entries = succeeding_chain.entry(circuit, Faulty.current_time, true)
-      expect(entries.size).to eq(1)
+      status = succeeding_chain.entry(circuit, Faulty.current_time, false, init_status)
+      expect(status.sample_size).to eq(1)
       expect(memory.history(circuit).size).to eq(1)
       expect(memory2.history(circuit).size).to eq(0)
     end
@@ -35,8 +36,8 @@ RSpec.describe Faulty::Storage::FallbackChain do
     it 'falls back to next storage after failure' do
       expect(notifier).to receive(:notify)
         .with(:storage_failure, circuit: circuit, action: :entry, error: be_a(RuntimeError))
-      entries = partially_failing_chain.entry(circuit, Faulty.current_time, true)
-      expect(entries.size).to eq(1)
+      status = partially_failing_chain.entry(circuit, Faulty.current_time, false, init_status)
+      expect(status.sample_size).to eq(1)
       expect(memory.history(circuit).size).to eq(1)
 
       expect(notifier).to receive(:notify)
@@ -48,8 +49,8 @@ RSpec.describe Faulty::Storage::FallbackChain do
       expect(notifier).to receive(:notify)
         .with(:storage_failure, circuit: circuit, action: :entry, error: be_a(RuntimeError))
         .twice
-      entries = long_chain.entry(circuit, Faulty.current_time, true)
-      expect(entries.size).to eq(1)
+      status = long_chain.entry(circuit, Faulty.current_time, false, init_status)
+      expect(status.sample_size).to eq(1)
       expect(memory.history(circuit).size).to eq(1)
 
       expect(notifier).to receive(:notify)
@@ -60,7 +61,7 @@ RSpec.describe Faulty::Storage::FallbackChain do
 
     it 'raises error if all storages fail' do
       expect do
-        failing_chain.entry(circuit, Faulty.current_time, true)
+        failing_chain.entry(circuit, Faulty.current_time, true, nil)
       end.to raise_error(
         Faulty::AllFailedError,
         'Faulty::Storage::FallbackChain#entry failed for all storage backends: fail, fail'
