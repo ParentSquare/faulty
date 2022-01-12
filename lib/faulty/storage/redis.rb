@@ -138,11 +138,14 @@ class Faulty
       # @param (see Interface#open)
       # @return (see Interface#open)
       def open(circuit, opened_at)
-        redis do |r|
-          opened = compare_and_set(r, state_key(circuit), ['closed', nil], 'open', ex: options.circuit_ttl)
-          r.set(opened_at_key(circuit), opened_at, ex: options.circuit_ttl) if opened
-          opened
+        key = state_key(circuit)
+        ex = options.circuit_ttl
+        result = watch_exec(key, ['closed', nil]) do |m|
+          m.set(key, 'open', ex: ex)
+          m.set(opened_at_key(circuit), opened_at, ex: ex)
         end
+
+        result && result[0] == 'OK'
       end
 
       # Mark a circuit as reopened
@@ -151,9 +154,12 @@ class Faulty
       # @param (see Interface#reopen)
       # @return (see Interface#reopen)
       def reopen(circuit, opened_at, previous_opened_at)
-        redis do |r|
-          compare_and_set(r, opened_at_key(circuit), [previous_opened_at.to_s], opened_at, ex: options.circuit_ttl)
+        key = opened_at_key(circuit)
+        result = watch_exec(key, [previous_opened_at.to_s]) do |m|
+          m.set(key, opened_at, ex: options.circuit_ttl)
         end
+
+        result && result[0] == 'OK'
       end
 
       # Mark a circuit as closed
@@ -162,11 +168,14 @@ class Faulty
       # @param (see Interface#close)
       # @return (see Interface#close)
       def close(circuit)
-        redis do |r|
-          closed = compare_and_set(r, state_key(circuit), ['open'], 'closed', ex: options.circuit_ttl)
-          r.del(entries_key(circuit)) if closed
-          closed
+        key = state_key(circuit)
+        ex = options.circuit_ttl
+        result = watch_exec(key, ['open']) do |m|
+          m.set(key, 'closed', ex: ex)
+          m.del(entries_key(circuit))
         end
+
+        result && result[0] == 'OK'
       end
 
       # Lock a circuit open or closed
@@ -220,11 +229,15 @@ class Faulty
           futures[:entries] = r.lrange(entries_key(circuit), 0, -1)
         end
 
+        state = futures[:state].value&.to_sym || :closed
+        opened_at = futures[:opened_at].value ? futures[:opened_at].value.to_i : nil
+        opened_at = Faulty.current_time - options.circuit_ttl if state == :open && opened_at.nil?
+
         Faulty::Status.from_entries(
           map_entries(futures[:entries].value),
-          state: futures[:state].value&.to_sym || :closed,
+          state: state,
           lock: futures[:lock].value&.to_sym,
-          opened_at: futures[:opened_at].value ? futures[:opened_at].value.to_i : nil,
+          opened_at: opened_at,
           options: circuit.options
         )
       end
@@ -329,23 +342,28 @@ class Faulty
         (Faulty.current_time.to_f / options.list_granularity).floor
       end
 
-      # Set a value in Redis only if it matches a list of current values
+      # Watch a Redis key and exec commands only if the key matches the expected
+      # value. Internally this uses Redis transactions with WATCH/MULTI/EXEC.
       #
-      # @param redis [Redis] The redis connection
-      # @param key [String] The redis key to CAS
-      # @param old [Array<String>] A list of previous values that pass the
-      #   comparison
-      # @param new [String] The new value to set if the compare passes
-      # @return [Boolean] True if the value was set to `new`, false if the CAS
-      #   failed
-      def compare_and_set(redis, key, old, new, ex:)
-        redis.watch(key) do
-          if old.include?(redis.get(key))
-            result = redis.multi { |m| m.set(key, new, ex: ex) }
-            result && result[0] == 'OK'
-          else
-            redis.unwatch
-            false
+      # @param key [String] The redis key to watch
+      # @param old [Array<String>] A list of previous values. The block will be
+      #   run only if key is one of these values.
+      # @yield [Redis] A redis client. Commands executed using this client
+      #   will be executed inside the MULTI context and will only be run if
+      #   the watch succeeds and the comparison passes
+      # @return [Array] An array of Redis results from the commands executed
+      #   inside the block
+      def watch_exec(key, old)
+        redis do |r|
+          r.watch(key) do
+            if old.include?(r.get(key))
+              r.multi do |m|
+                yield m
+              end
+            else
+              r.unwatch
+              nil
+            end
           end
         end
       end
