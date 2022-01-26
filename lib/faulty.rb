@@ -247,13 +247,6 @@ class Faulty
     @registry.retrieve(name, options, &block)
   end
 
-  # Get a list of all circuit names
-  #
-  # @return [Array<String>] The circuit names
-  def list_circuits
-    options.storage.list
-  end
-
   private
 
   # Get circuit options from the {Faulty} options
