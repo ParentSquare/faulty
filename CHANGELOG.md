@@ -1,4 +1,4 @@
-## Release v0.8.3
+## Release v0.8.4
 
 * Add Elasticsearch client patch #44 justinhoward
 
