@@ -37,6 +37,9 @@ jobs:
           bundler-cache: true
       - run: bundle exec rubocop
         if: matrix.ruby == '2.7'
+      - run: bin/yardoc --fail-on-warning
+        if: matrix.ruby == '2.7'
+      - run: bin/check-version
       - name: start MySQL
         run: sudo /etc/init.d/mysql start
       - run: bundle exec rspec --format doc
@@ -48,7 +51,6 @@ jobs:
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
           coverage-reports: coverage/lcov/faulty.lcov
-      - run: bin/check-version
 
   release:
     needs: test

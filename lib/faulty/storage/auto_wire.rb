@@ -69,7 +69,7 @@ class Faulty
 
         # Wrap an array of storage backends in a fault-tolerant FallbackChain
         #
-        # @param [Array<Storage::Interface>] The array to wrap
+        # @param array [Array<Storage::Interface>] The array to wrap
         # @param options [Options]
         # @return [Storage::Interface] A fault-tolerant fallback chain
         def wrap_array(array, options)
@@ -81,7 +81,7 @@ class Faulty
 
         # Wrap one storage backend in fault-tolerant backends
         #
-        # @param [Storage::Interface] The storage to wrap
+        # @param storage [Storage::Interface] The storage to wrap
         # @param options [Options]
         # @return [Storage::Interface] A fault-tolerant storage backend
         def wrap_one(storage, options)
@@ -93,7 +93,7 @@ class Faulty
 
         # Wrap storage in a CircuitProxy
         #
-        # @param [Storage::Interface] The storage to wrap
+        # @param storage [Storage::Interface] The storage to wrap
         # @param options [Options]
         # @return [CircuitProxy]
         def circuit_proxy(storage, options)
