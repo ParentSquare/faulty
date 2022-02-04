@@ -53,7 +53,7 @@ class Faulty
             ::Mysql2::Error::ConnectionError,
             ::Mysql2::Error::TimeoutError
           ],
-          patched_error_module: Faulty::Patch::Mysql2
+          patched_error_mapper: Faulty::Patch::Mysql2
         )
 
         super

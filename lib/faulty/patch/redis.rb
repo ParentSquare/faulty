@@ -43,7 +43,7 @@ class Faulty
             ::Redis::BaseConnectionError,
             BusyError
           ],
-          patched_error_module: Faulty::Patch::Redis
+          patched_error_mapper: Faulty::Patch::Redis
         )
 
         super

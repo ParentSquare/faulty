@@ -21,6 +21,7 @@ RSpec.describe Faulty::Patch::Elasticsearch do
     expect { patched_bad_client.perform_request('GET', '_cluster/state') }
       .to raise_error do |error|
         expect(error).to be_a(Elasticsearch::Transport::Transport::Error)
+        expect(error.class).to eq(Faulty::Patch::Elasticsearch::Error::CircuitFailureError)
         expect(error).to be_a(Faulty::CircuitErrorBase)
         expect(error.cause).to be_a(Faraday::ConnectionFailed)
       end
@@ -48,9 +49,28 @@ RSpec.describe Faulty::Patch::Elasticsearch do
   it 'raises unpatched errors if configured to' do
     expect { bad_client_unpatched_errors.perform_request('GET', '_cluster/state') }
       .to raise_error do |error|
-        expect(error).to be_a(Faulty::CircuitError)
+        expect(error.class).to eq(Faulty::CircuitFailureError)
         expect(error.cause).to be_a(Faraday::ConnectionFailed)
       end
     expect(faulty.circuit('elasticsearch').status.failure_rate).to eq(1)
+  end
+
+  it 'raises case-specific Elasticsearch errors' do
+    expect { patched_good_client.perform_request('PUT', '') }
+      .to raise_error do |error|
+        expect(error).to be_a(Elasticsearch::Transport::Transport::Errors::MethodNotAllowed)
+        expect(error.class).to eq(Faulty::Patch::Elasticsearch::Errors::MethodNotAllowed::CircuitFailureError)
+        expect(error).to be_a(Faulty::CircuitErrorBase)
+        expect(error.cause.class).to eq(Elasticsearch::Transport::Transport::Errors::MethodNotAllowed)
+      end
+    expect(faulty.circuit('elasticsearch').status.failure_rate).to eq(1)
+  end
+
+  it 'ignores 404 errors' do
+    expect { patched_good_client.perform_request('GET', 'not_an_index') }
+      .to raise_error do |error|
+        expect(error.class).to eq(Elasticsearch::Transport::Transport::Errors::NotFound)
+      end
+    expect(faulty.circuit('elasticsearch').status.failure_rate).to eq(0)
   end
 end

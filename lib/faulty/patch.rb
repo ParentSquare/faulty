@@ -64,14 +64,15 @@ class Faulty
       #   option and these additional options
       # @option hash [String] :name The circuit name. Defaults to `default_name`
       # @option hash [Boolean] :patch_errors By default, circuit errors will be
-      #   subclasses of `options[:patched_error_module]`. The user can disable
+      #   subclasses of `options[:patched_error_mapper]`. The user can disable
       #   this by setting this option to false.
       # @option hash [Faulty, String, Symbol, Hash{ constant: String }] :instance
       #   A reference to a faulty instance. See examples.
       # @param options [Hash] Additional override options. Supports any circuit
       #   option and these additional ones.
-      # @option options [Module] :patched_error_module The namespace module
-      #   for patched errors
+      # @option options [Module] :patched_error_mapper The namespace module
+      #   for patched errors or a mapping proc. See {Faulty::Circuit::Options}
+      #   `:error_mapper`
       # @yield [Circuit::Options] For setting override options in a block
       # @return [Circuit, nil] The circuit if one was created
       def circuit_from_hash(default_name, hash, **options, &block)
@@ -80,8 +81,8 @@ class Faulty
         hash = symbolize_keys(hash)
         name = hash.delete(:name) || default_name
         patch_errors = hash.delete(:patch_errors) != false
-        error_module = options.delete(:patched_error_module)
-        hash[:error_module] ||= error_module if error_module && patch_errors
+        error_mapper = options.delete(:patched_error_mapper)
+        hash[:error_mapper] ||= error_mapper if error_mapper && patch_errors
         faulty = resolve_instance(hash.delete(:instance))
         faulty.circuit(name, **hash, **options, &block)
       end

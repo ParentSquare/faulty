@@ -279,6 +279,22 @@ RSpec.context :circuits do
       expect(circuit.options.cool_down).to eq(300)
     end
 
+    context 'with error_mapper module' do
+      let(:options) do
+        {
+          cache: cache,
+          error_mapper: custom_error_module,
+          storage: storage
+        }
+      end
+
+      it 'raises custom errors' do
+        expect do
+          circuit.run { raise 'fail' }
+        end.to raise_error(custom_error_module::CircuitFailureError)
+      end
+    end
+
     context 'with error_module' do
       let(:options) do
         {
@@ -288,10 +304,30 @@ RSpec.context :circuits do
         }
       end
 
+      around { |example| Faulty::Deprecation.silenced(&example) }
+
       it 'raises custom errors' do
         expect do
           circuit.run { raise 'fail' }
         end.to raise_error(custom_error_module::CircuitFailureError)
+      end
+    end
+
+    context 'with error_mapper lambda' do
+      let(:options) do
+        {
+          cache: cache,
+          error_mapper: lambda do |error_name, cause, circuit|
+            custom_error_module.const_get(error_name).new("mapped #{cause.message}", circuit)
+          end,
+          storage: storage
+        }
+      end
+
+      it 'raises mapped error' do
+        expect do
+          circuit.run { raise 'fail' }
+        end.to raise_error(custom_error_module::CircuitFailureError, /.*mapped fail/)
       end
     end
   end

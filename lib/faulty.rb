@@ -4,6 +4,7 @@ require 'securerandom'
 require 'forwardable'
 require 'concurrent'
 
+require 'faulty/deprecation'
 require 'faulty/immutable_options'
 require 'faulty/cache'
 require 'faulty/circuit'

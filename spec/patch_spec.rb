@@ -8,7 +8,7 @@ RSpec.describe Faulty::Patch do
   describe '.circuit_from_hash' do
     let(:faulty) { Faulty.new(listeners: []) }
 
-    let(:error_module) do
+    let(:error_mapper) do
       stub_const('TestErrors', Module.new)
       described_class.define_circuit_errors(TestErrors, error_base)
       TestErrors
@@ -62,33 +62,33 @@ RSpec.describe Faulty::Patch do
     end
 
     context 'when patch_errors is enabled' do
-      it 'sets error_module' do
+      it 'sets error_mapper' do
         circuit = described_class.circuit_from_hash(
           'test',
           { instance: faulty },
-          patched_error_module: error_module
+          patched_error_mapper: error_mapper
         )
-        expect(circuit.options.error_module).to eq(error_module)
+        expect(circuit.options.error_mapper).to eq(error_mapper)
       end
     end
 
-    context 'when patch_errors is enabled but patched_error_module is missing' do
+    context 'when patch_errors is enabled but patched_error_mapper is missing' do
       it 'uses Faulty error module' do
         circuit = described_class.circuit_from_hash(
           'test',
           { instance: faulty, patch_errors: true }
         )
-        expect(circuit.options.error_module).to eq(Faulty)
+        expect(circuit.options.error_mapper).to eq(Faulty)
       end
     end
 
-    context 'when user sets error_module manually' do
-      it 'overrides patched_error_module' do
+    context 'when user sets error_mapper manually' do
+      it 'overrides patched_error_mapper' do
         circuit = described_class.circuit_from_hash(
           'test',
-          { instance: faulty, error_module: Faulty }
+          { instance: faulty, error_mapper: Faulty }
         )
-        expect(circuit.options.error_module).to eq(Faulty)
+        expect(circuit.options.error_mapper).to eq(Faulty)
       end
     end
 
@@ -98,7 +98,7 @@ RSpec.describe Faulty::Patch do
           'test',
           { instance: faulty, patch_errors: false }
         )
-        expect(circuit.options.error_module).to eq(Faulty)
+        expect(circuit.options.error_mapper).to eq(Faulty)
       end
     end
 

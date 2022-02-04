@@ -36,7 +36,32 @@ class Faulty
     module Elasticsearch
       include Base
 
-      Patch.define_circuit_errors(self, ::Elasticsearch::Transport::Transport::Error)
+      module Error; end
+      module SnifferTimeoutError; end
+      module ServerError; end
+
+      # We will freeze this after adding the dynamic error classes
+      MAPPED_ERRORS = { # rubocop:disable Style/MutableConstant
+        ::Elasticsearch::Transport::Transport::Error => Error,
+        ::Elasticsearch::Transport::Transport::SnifferTimeoutError => SnifferTimeoutError,
+        ::Elasticsearch::Transport::Transport::ServerError => ServerError
+      }
+
+      module Errors
+        ::Elasticsearch::Transport::Transport::ERRORS.each do |_code, klass|
+          MAPPED_ERRORS[klass] = const_set(klass.name.split('::').last, Module.new)
+        end
+      end
+
+      MAPPED_ERRORS.freeze
+      MAPPED_ERRORS.each do |klass, mod|
+        Patch.define_circuit_errors(mod, klass)
+      end
+
+      ERROR_MAPPER = lambda do |error_name, cause, circuit|
+        MAPPED_ERRORS.fetch(cause&.class, Error).const_get(error_name).new(cause&.message, circuit)
+      end
+      private_constant :ERROR_MAPPER, :MAPPED_ERRORS
 
       def initialize(arguments = {}, &block)
         super
@@ -48,7 +73,8 @@ class Faulty
           'elasticsearch',
           arguments[:faulty],
           errors: errors,
-          patched_error_module: Faulty::Patch::Elasticsearch
+          exclude: ::Elasticsearch::Transport::Transport::Errors::NotFound,
+          patched_error_mapper: ERROR_MAPPER
         )
       end
 
