@@ -143,14 +143,14 @@ class Faulty
       @disabled = true
     end
 
-    # Re-enable Faulty if disabled with {#disable!}
+    # Re-enable Faulty if disabled with {.disable!}
     #
     # @return [void]
     def enable!
       @disabled = false
     end
 
-    # Check whether Faulty was disabled with {#disable!}
+    # Check whether Faulty was disabled with {.disable!}
     #
     # @return [Boolean] True if disabled
     def disabled?

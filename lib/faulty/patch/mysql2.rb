@@ -81,4 +81,8 @@ class Faulty
   end
 end
 
-::Mysql2::Client.prepend(Faulty::Patch::Mysql2)
+module Mysql2
+  class Client
+    prepend(Faulty::Patch::Mysql2)
+  end
+end

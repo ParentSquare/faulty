@@ -60,4 +60,10 @@ class Faulty
   end
 end
 
-::Elasticsearch::Transport::Client.prepend(Faulty::Patch::Elasticsearch)
+module Elasticsearch
+  module Transport
+    class Client
+      prepend(Faulty::Patch::Elasticsearch)
+    end
+  end
+end

@@ -93,4 +93,8 @@ class Faulty
   end
 end
 
-::Redis::Client.prepend(Faulty::Patch::Redis)
+class Redis
+  class Client
+    prepend(Faulty::Patch::Redis)
+  end
+end

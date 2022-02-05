@@ -21,7 +21,7 @@ class Faulty
       # They should be returned exactly as given by {#set_options}
       #
       # @param circuit [Circuit] The circuit to set options for
-      # @param options [Hash<Symbol, Object>] A hash of symbol option names to
+      # @param stored_options [Hash<Symbol, Object>] A hash of symbol option names to
       #   circuit options. These option values are guranteed to be primive
       #   values.
       # @return [void]
