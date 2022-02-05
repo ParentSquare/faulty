@@ -94,4 +94,14 @@ RSpec.describe Faulty::Storage::Redis do
       expect { storage }.to output(/while checking client options: fail/).to_stderr
     end
   end
+
+  context 'when opened_at is missing and status is open' do
+    it 'sets opened_at to the maximum' do
+      Timecop.freeze
+      storage.open(circuit, Faulty.current_time)
+      client.del('faulty:circuit:test:opened_at')
+      status = storage.status(circuit)
+      expect(status.opened_at).to eq(Faulty.current_time - storage.options.circuit_ttl)
+    end
+  end
 end
