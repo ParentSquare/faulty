@@ -392,11 +392,27 @@ class Faulty
       end
 
       def check_redis_options!
-        ropts = redis { |r| r.instance_variable_get(:@client).options }
+        redis_options = redis do |r|
+          client_or_cluster = r.instance_variable_get(:@client)
+          if client_or_cluster.is_a?(Redis::Cluster)
+            cluster_node = client_or_cluster.instance_variable_get(:@node)
+            cluster_node.instance_variable_get(:@clients).values.map do |client|
+              client.options
+            end
+          else
+            [client_or_cluster.options]
+          end
+        end
 
+        redis_options.each do |redis_option|
+          check_redis_client_options(redis_option)
+        end
+      end
+
+      def check_redis_client_options(redis_option)
         bad_timeouts = {}
         %i[connect_timeout read_timeout write_timeout].each do |time_opt|
-          bad_timeouts[time_opt] = ropts[time_opt] if ropts[time_opt] > 2
+          bad_timeouts[time_opt] = redis_option[time_opt] if redis_option[time_opt] > 2
         end
 
         unless bad_timeouts.empty?
@@ -407,10 +423,10 @@ class Faulty
           MSG
         end
 
-        if ropts[:reconnect_attempts] > 1
+        if redis_option[:reconnect_attempts] > 1
           warn <<~MSG
             Faulty recommends setting Redis reconnect_attempts to <= 1 to
-            prevent cascading failures. Your setting is #{ropts[:reconnect_attempts]}
+            prevent cascading failures. Your setting is #{redis_option[:reconnect_attempts]}
           MSG
         end
       end
