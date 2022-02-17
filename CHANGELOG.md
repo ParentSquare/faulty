@@ -11,7 +11,7 @@
   `status`. If given, the method must return the updated status,
   otherwise if status is `nil` #entry may return nil. Previously #entry
   always returned a history array.
-* The error_module option is deprecated. Patches should use the error_module
+* The error_module option is deprecated. Patches should use the error_mapper
   option instead. The option will be removed in 0.9
 
 
