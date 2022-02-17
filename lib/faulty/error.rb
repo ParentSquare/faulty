@@ -28,6 +28,9 @@ class Faulty
     end
   end
 
+  class DeprecationError < FaultyError
+  end
+
   # Included in faulty circuit errors to provide common features for
   # native and patched errors
   module CircuitErrorBase
