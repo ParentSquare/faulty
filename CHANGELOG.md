@@ -1,3 +1,10 @@
+## Release v0.8.5
+
+* Fix yard warnings #49 justinhoward
+* Fix crash in Redis storage backend if opened_at was missing #46 justinhoward
+* Add granular errors for Elasticsearch patch #48 justinhoward
+* Return status conditionally for Storage::Interface#entry #45 justinhoward
+
 ## Release v0.8.4
 
 * Add Elasticsearch client patch #44 justinhoward
