@@ -156,6 +156,13 @@ class Faulty
       end
     end
 
+    # @return [String] Text representation of the circuit
+    def inspect
+      interested_opts = %i(cache_expires_in cache_refreshes_after cache_refresh_jitter cool_down evaluation_window rate_threshold sample_threshold errors exclude)
+      options_text = options.each_pair.map { |k,v| "#{k}: #{v}" if interested_opts.include?(k) }.compact.join(", ")
+      %(#<#{self.class.name} name: #{name}, state: #{status.state}, options: { #{options_text} }>)
+    end
+
     # @param name [String] The name of the circuit
     # @param options [Hash] Attributes for {Options}
     # @yield [Options] For setting options in a block
