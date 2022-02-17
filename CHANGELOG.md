@@ -5,6 +5,16 @@
 * Add granular errors for Elasticsearch patch #48 justinhoward
 * Return status conditionally for Storage::Interface#entry #45 justinhoward
 
+### Deprecations
+
+* Storage::Interface#entry should now accept an additional parameter
+  `status`. If given, the method must return the updated status,
+  otherwise if status is `nil` #entry may return nil. Previously #entry
+  always returned a history array.
+* The error_module option is deprecated. Patches should use the error_module
+  option instead. The option will be removed in 0.9
+
+
 ## Release v0.8.4
 
 * Add Elasticsearch client patch #44 justinhoward
