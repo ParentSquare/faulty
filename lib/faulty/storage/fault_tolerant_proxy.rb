@@ -112,11 +112,11 @@ class Faulty
       # @see Interface#entry
       # @param (see Interface#entry)
       # @return (see Interface#entry)
-      def entry(circuit, time, success)
-        @storage.entry(circuit, time, success)
+      def entry(circuit, time, success, status)
+        @storage.entry(circuit, time, success, status)
       rescue StandardError => e
         options.notifier.notify(:storage_failure, circuit: circuit, action: :entry, error: e)
-        []
+        stub_status(circuit) if status
       end
 
       # Safely mark a circuit as open

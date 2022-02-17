@@ -119,7 +119,7 @@ class Faulty
       # @see Interface#entry
       # @param (see Interface#entry)
       # @return (see Interface#entry)
-      def entry(circuit, time, success)
+      def entry(circuit, time, success, status)
         key = entries_key(circuit)
         result = pipe do |r|
           r.sadd(list_key, circuit.name)
@@ -127,9 +127,10 @@ class Faulty
           r.lpush(key, "#{time}#{ENTRY_SEPARATOR}#{success ? 1 : 0}")
           r.ltrim(key, 0, options.max_sample_size - 1)
           r.expire(key, options.sample_ttl) if options.sample_ttl
-          r.lrange(key, 0, -1)
+          r.lrange(key, 0, -1) if status
         end
-        map_entries(result.last)
+
+        Status.from_entries(map_entries(result.last), **status.to_h) if status
       end
 
       # Mark a circuit as open

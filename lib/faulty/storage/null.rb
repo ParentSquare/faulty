@@ -24,8 +24,8 @@ class Faulty
 
       # @param (see Interface#entry)
       # @return (see Interface#entry)
-      def entry(_circuit, _time, _success)
-        []
+      def entry(circuit, _time, _success, status)
+        stub_status(circuit) if status
       end
 
       # @param (see Interface#open)
@@ -64,10 +64,7 @@ class Faulty
       # @param (see Interface#status)
       # @return (see Interface#status)
       def status(circuit)
-        Faulty::Status.new(
-          options: circuit.options,
-          stub: true
-        )
+        stub_status(circuit)
       end
 
       # @param (see Interface#history)
@@ -88,6 +85,15 @@ class Faulty
       # @return (see Interface#fault_tolerant?)
       def fault_tolerant?
         true
+      end
+
+      private
+
+      def stub_status(circuit)
+        Faulty::Status.new(
+          options: circuit.options,
+          stub: true
+        )
       end
     end
   end
