@@ -2,6 +2,7 @@
 
 require 'connection_pool'
 require 'redis'
+require 'redis/cluster'
 
 RSpec.describe Faulty::Storage::Redis do
   subject(:storage) { described_class.new(**options.merge(client: client)) }
@@ -43,6 +44,14 @@ RSpec.describe Faulty::Storage::Redis do
         storage.open(circuit, Faulty.current_time)
       end
       expect(result.count { |r| r }).to eq(1)
+    end
+  end
+
+  context 'when use with Redis Cluster' do
+    let(:client) { Redis::Cluster.new(cluster: [{ host: '127.0.0.1', port: '7000' }]) }
+
+    it 'prints Redis Cluster warning' do
+      expect { storage }.to output(/Redis Cluster is not an appropriate storage backend for Faulty/).to_stderr
     end
   end
 

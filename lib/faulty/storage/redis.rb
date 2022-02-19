@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'redis/cluster'
+
 class Faulty
   module Storage
     # A storage backend for storing circuit state in Redis.
@@ -392,7 +394,18 @@ class Faulty
       end
 
       def check_redis_options!
-        ropts = redis { |r| r.instance_variable_get(:@client).options }
+        ropts = redis do |r|
+          client = r.instance_variable_get(:@client)
+
+          if client.is_a?(::Redis::Cluster)
+            warn <<~MSG
+              Redis Cluster is not an appropriate storage backend for Faulty.
+              See https://github.com/ParentSquare/faulty/pull/51#issuecomment-1045280867
+            MSG
+          else
+            client.options
+          end
+        end
 
         bad_timeouts = {}
         %i[connect_timeout read_timeout write_timeout].each do |time_opt|
