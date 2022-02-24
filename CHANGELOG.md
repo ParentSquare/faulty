@@ -1,3 +1,7 @@
+## Release v0.8.6
+
+* Define an inspect method that represent circuit #50 JuanitoFatas
+
 ## Release v0.8.5
 
 * Fix yard warnings #49 justinhoward
