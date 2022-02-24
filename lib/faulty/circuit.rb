@@ -158,9 +158,15 @@ class Faulty
 
     # @return [String] Text representation of the circuit
     def inspect
-      # rubocop:disable Layout/LineLength
-      interested_opts = %i[cache_expires_in cache_refreshes_after cache_refresh_jitter cool_down evaluation_window rate_threshold sample_threshold errors exclude]
-      # rubocop:enable Layout/LineLength
+      interested_opts = %i[
+        cache_expires_in
+        cache_refreshes_after
+        cache_refresh_jitter
+        cool_down evaluation_window
+        rate_threshold
+        sample_threshold
+        errors exclude
+      ]
       options_text = options.each_pair.map { |k, v| "#{k}: #{v}" if interested_opts.include?(k) }.compact.join(', ')
       %(#<#{self.class.name} name: #{name}, state: #{status.state}, options: { #{options_text} }>)
     end
