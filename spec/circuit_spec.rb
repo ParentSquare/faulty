@@ -30,6 +30,16 @@ RSpec.context :circuits do
     TestErrors
   end
 
+  it 'inspect' do
+    circuit = Faulty::Circuit.new('plain')
+    expect(circuit.inspect).to eq(
+      '#<Faulty::Circuit name: plain, state: closed, options: { ' \
+      'cache_expires_in: 86400, cache_refreshes_after: 900, ' \
+      'cache_refresh_jitter: 180.0, cool_down: 300, evaluation_window: 60, ' \
+      'rate_threshold: 0.5, sample_threshold: 3, errors: [StandardError], exclude: [] }>'
+    )
+  end
+
   it 'can be constructed with only a name' do
     circuit = Faulty::Circuit.new('plain')
     expect(circuit.name).to eq('plain')
