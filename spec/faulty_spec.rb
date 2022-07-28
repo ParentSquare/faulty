@@ -113,7 +113,8 @@ RSpec.describe Faulty do
 
   it 'gets the current timestamp' do
     Timecop.freeze(Time.new(2020, 1, 1, 0, 0, 0, '+00:00'))
-    expect(described_class.current_time).to eq(1_577_836_800)
+    expect(described_class.current_time).to eq(1_577_836_800.0)
+    expect(described_class.current_time).to be_a(Float)
   end
 
   it 'does not memoize circuits before they are run' do

@@ -49,6 +49,12 @@ RSpec.configure do |config|
   config.disable_monkey_patching!
   config.warnings = false
 
+  config.before do
+    allow(Faulty).to receive(:current_time) do
+      Time.now.to_f
+    end
+  end
+
   config.after do
     Timecop.return
     Faulty.enable!

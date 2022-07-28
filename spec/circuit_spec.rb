@@ -116,7 +116,7 @@ RSpec.context :circuits do
       Timecop.freeze
       circuit.run { 'ok' }
       circuit.try_run { raise 'failed' }
-      expect(circuit.history).to eq([[Time.now.to_i, true], [Time.now.to_i, false]])
+      expect(circuit.history).to eq([[Time.now.to_f, true], [Time.now.to_f, false]])
     end
 
     it 'clears stats and history when reset' do

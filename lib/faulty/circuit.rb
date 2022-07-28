@@ -547,7 +547,7 @@ class Faulty
     #
     # @return [Boolean] true if the cache should be refreshed
     def cache_should_refresh?(key)
-      time = options.cache.read(cache_refresh_key(key.to_s)).to_i
+      time = options.cache.read(cache_refresh_key(key.to_s)).to_f
       time + (((rand * 2) - 1) * options.cache_refresh_jitter) < Faulty.current_time
     end
 

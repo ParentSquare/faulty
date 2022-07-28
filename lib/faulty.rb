@@ -15,6 +15,7 @@ require 'faulty/circuit_registry'
 require 'faulty/result'
 require 'faulty/status'
 require 'faulty/storage'
+require 'faulty/timer'
 
 # The {Faulty} class has class-level methods for global state or can be
 # instantiated to create an independent configuration.
@@ -127,9 +128,10 @@ class Faulty
     # Used by Faulty wherever the current time is needed. Can be overridden
     # for testing
     #
-    # @return [Time] The current time
+    # @return [Float] The current time
     def current_time
-      Time.now.to_i
+      @timer ||= Timer.new
+      @timer.current
     end
 
     # Disable Faulty circuits
