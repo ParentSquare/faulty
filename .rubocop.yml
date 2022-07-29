@@ -73,6 +73,7 @@ RSpec/VerifiedDoubleReference: { Enabled: true }
 
 Metrics/AbcSize: { Max: 40 }
 Metrics/BlockLength: { Enabled: false }
+Metrics/ClassLength: { Enabled: false }
 Metrics/CyclomaticComplexity: { Enabled: false }
 Metrics/MethodLength: { Max: 30 }
 Metrics/PerceivedComplexity: { Enabled: false }

@@ -9,7 +9,7 @@ class Faulty
     # cascading failures in your application when evaluating circuits. Always
     # wrap this backend with a {FaultTolerantProxy} to limit the effect of
     # these types of events.
-    class Redis # rubocop:disable Metrics/ClassLength
+    class Redis
       # Separates the time/status for history entry strings
       ENTRY_SEPARATOR = ':'
 
@@ -95,7 +95,7 @@ class Faulty
       # @param (see Interface#get_options)
       # @return (see Interface#get_options)
       def get_options(circuit)
-        json = redis { |r| r.get(options_key(circuit)) }
+        json = redis { |r| r.get(options_key(circuit.name)) }
         return if json.nil?
 
         JSON.parse(json, symbolize_names: true)
@@ -110,7 +110,7 @@ class Faulty
       # @return (see Interface#set_options)
       def set_options(circuit, stored_options)
         redis do |r|
-          r.set(options_key(circuit), JSON.dump(stored_options), ex: options.circuit_ttl)
+          r.set(options_key(circuit.name), JSON.dump(stored_options), ex: options.circuit_ttl)
         end
       end
 
@@ -120,7 +120,7 @@ class Faulty
       # @param (see Interface#entry)
       # @return (see Interface#entry)
       def entry(circuit, time, success, status)
-        key = entries_key(circuit)
+        key = entries_key(circuit.name)
         result = pipe do |r|
           r.sadd(list_key, circuit.name)
           r.expire(list_key, options.circuit_ttl + options.list_granularity) if options.circuit_ttl
@@ -139,11 +139,11 @@ class Faulty
       # @param (see Interface#open)
       # @return (see Interface#open)
       def open(circuit, opened_at)
-        key = state_key(circuit)
+        key = state_key(circuit.name)
         ex = options.circuit_ttl
         result = watch_exec(key, ['closed', nil]) do |m|
           m.set(key, 'open', ex: ex)
-          m.set(opened_at_key(circuit), opened_at, ex: ex)
+          m.set(opened_at_key(circuit.name), opened_at, ex: ex)
         end
 
         result && result[0] == 'OK'
@@ -155,7 +155,7 @@ class Faulty
       # @param (see Interface#reopen)
       # @return (see Interface#reopen)
       def reopen(circuit, opened_at, previous_opened_at)
-        key = opened_at_key(circuit)
+        key = opened_at_key(circuit.name)
         result = watch_exec(key, [previous_opened_at.to_s]) do |m|
           m.set(key, opened_at, ex: options.circuit_ttl)
         end
@@ -169,11 +169,11 @@ class Faulty
       # @param (see Interface#close)
       # @return (see Interface#close)
       def close(circuit)
-        key = state_key(circuit)
+        key = state_key(circuit.name)
         ex = options.circuit_ttl
         result = watch_exec(key, ['open']) do |m|
           m.set(key, 'closed', ex: ex)
-          m.del(entries_key(circuit))
+          m.del(entries_key(circuit.name))
         end
 
         result && result[0] == 'OK'
@@ -187,7 +187,7 @@ class Faulty
       # @param (see Interface#lock)
       # @return (see Interface#lock)
       def lock(circuit, state)
-        redis { |r| r.set(lock_key(circuit), state) }
+        redis { |r| r.set(lock_key(circuit.name), state) }
       end
 
       # Unlock a circuit
@@ -196,7 +196,7 @@ class Faulty
       # @param (see Interface#unlock)
       # @return (see Interface#unlock)
       def unlock(circuit)
-        redis { |r| r.del(lock_key(circuit)) }
+        redis { |r| r.del(lock_key(circuit.name)) }
       end
 
       # Reset a circuit
@@ -205,14 +205,15 @@ class Faulty
       # @param (see Interface#reset)
       # @return (see Interface#reset)
       def reset(circuit)
+        name = circuit.is_a?(Circuit) ? circuit.name : circuit
         pipe do |r|
           r.del(
-            entries_key(circuit),
-            opened_at_key(circuit),
-            lock_key(circuit),
-            options_key(circuit)
+            entries_key(name),
+            opened_at_key(name),
+            lock_key(name),
+            options_key(name)
           )
-          r.set(state_key(circuit), 'closed', ex: options.circuit_ttl)
+          r.set(state_key(name), 'closed', ex: options.circuit_ttl)
         end
       end
 
@@ -224,10 +225,10 @@ class Faulty
       def status(circuit)
         futures = {}
         pipe do |r|
-          futures[:state] = r.get(state_key(circuit))
-          futures[:lock] = r.get(lock_key(circuit))
-          futures[:opened_at] = r.get(opened_at_key(circuit))
-          futures[:entries] = r.lrange(entries_key(circuit), 0, -1)
+          futures[:state] = r.get(state_key(circuit.name))
+          futures[:lock] = r.get(lock_key(circuit.name))
+          futures[:opened_at] = r.get(opened_at_key(circuit.name))
+          futures[:entries] = r.lrange(entries_key(circuit.name), 0, -1)
         end
 
         state = futures[:state].value&.to_sym || :closed
@@ -249,7 +250,7 @@ class Faulty
       # @param (see Interface#history)
       # @return (see Interface#history)
       def history(circuit)
-        entries = redis { |r| r.lrange(entries_key(circuit), 0, -1) }
+        entries = redis { |r| r.lrange(entries_key(circuit.name), 0, -1) }
         map_entries(entries).reverse
       end
 
@@ -258,6 +259,21 @@ class Faulty
       # @return (see Interface#list)
       def list
         redis { |r| r.sunion(*all_list_keys) }
+      end
+
+      # Reset all circuits
+      #
+      # This does not empty the list of circuits as returned by {#list}. This is
+      # because that would be a thread-usafe operation that could result in
+      # circuits not being in the list.
+      #
+      # This implmenentation resets circuits individually, and will be very
+      # slow for large numbers of circuits. It should not be used in production
+      # code.
+      #
+      # @return [void]
+      def clear
+        list.each { |c| reset(c) }
       end
 
       # Redis storage is not fault-tolerant
@@ -276,33 +292,33 @@ class Faulty
         [options.key_prefix, *parts].join(options.key_separator)
       end
 
-      def ckey(circuit, *parts)
-        key('circuit', circuit.name, *parts)
+      def ckey(circuit_name, *parts)
+        key('circuit', circuit_name, *parts)
       end
 
       # @return [String] The key for circuit options
-      def options_key(circuit)
-        ckey(circuit, 'options')
+      def options_key(circuit_name)
+        ckey(circuit_name, 'options')
       end
 
       # @return [String] The key for circuit state
-      def state_key(circuit)
-        ckey(circuit, 'state')
+      def state_key(circuit_name)
+        ckey(circuit_name, 'state')
       end
 
       # @return [String] The key for circuit run history entries
-      def entries_key(circuit)
-        ckey(circuit, 'entries')
+      def entries_key(circuit_name)
+        ckey(circuit_name, 'entries')
       end
 
       # @return [String] The key for circuit locks
-      def lock_key(circuit)
-        ckey(circuit, 'lock')
+      def lock_key(circuit_name)
+        ckey(circuit_name, 'lock')
       end
 
       # @return [String] The key for circuit opened_at
-      def opened_at_key(circuit)
-        ckey(circuit, 'opened_at')
+      def opened_at_key(circuit_name)
+        ckey(circuit_name, 'opened_at')
       end
 
       # Get the current key to add circuit names to

@@ -10,4 +10,12 @@ RSpec.describe Faulty::Storage::Memory do
     storage.entry(circuit, 9, true, nil)
     expect(storage.history(circuit).map { |h| h[0] }).to eq([1, 2, 9])
   end
+
+  it 'clears circuits and list' do
+    storage = described_class.new
+    storage.entry(circuit, Faulty.current_time, true, nil)
+    storage.clear
+    expect(storage.list).to eq([])
+    expect(storage.history(circuit)).to eq([])
+  end
 end

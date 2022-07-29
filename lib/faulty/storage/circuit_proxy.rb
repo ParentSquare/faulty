@@ -58,6 +58,7 @@ class Faulty
         status
         history
         list
+        clear
       ].each do |method|
         define_method(method) do |*args|
           options.circuit.run { @storage.public_send(method, *args) }

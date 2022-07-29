@@ -159,6 +159,14 @@ class Faulty
         end
       end
 
+      # Clears circuits in all storage backends
+      #
+      # @param (see Interface#clear)
+      # @return (see Interface#clear)
+      def clear
+        send_all(:clear)
+      end
+
       # This is fault tolerant if any of the available backends are fault tolerant
       #
       # @param (see Interface#fault_tolerant?)

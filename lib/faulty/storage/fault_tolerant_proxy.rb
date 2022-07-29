@@ -81,7 +81,14 @@ class Faulty
       #   @see Interface#list
       #   @param (see Interface#list)
       #   @return (see Interface#list)
-      def_delegators :@storage, :lock, :unlock, :reset, :history, :list
+      #
+      # @!method clear
+      #   Clear is not called in normal operation, so it doesn't capture errors
+      #
+      #   @see Interface#list
+      #   @param (see Interface#list)
+      #   @return (see Interface#list)
+      def_delegators :@storage, :lock, :unlock, :reset, :history, :list, :clear
 
       # Get circuit options safely
       #

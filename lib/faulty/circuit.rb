@@ -23,7 +23,7 @@ class Faulty
   # write your own code to periodically check how long it has been running.
   # If you're sure you want ruby's generic Timeout, you can apply it yourself
   # inside the circuit run block.
-  class Circuit # rubocop:disable Metrics/ClassLength
+  class Circuit
     CACHE_REFRESH_SUFFIX = '.faulty_refresh'
 
     attr_reader :name

@@ -19,6 +19,13 @@ RSpec.describe Faulty::Storage::Redis do
       storage.entry(circuit, Faulty.current_time, true, nil)
       expect(storage.history(circuit).size).to eq(1)
     end
+
+    it 'clears circuits and list' do
+      storage.entry(circuit, Faulty.current_time, true, nil)
+      storage.clear
+      expect(storage.list).to eq(%w[test])
+      expect(storage.history(circuit)).to eq([])
+    end
   end
 
   context 'with connection pool' do
