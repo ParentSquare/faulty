@@ -3,7 +3,7 @@
 RSpec.describe Faulty::Patch::Elasticsearch do
   let(:faulty) { Faulty.new(listeners: []) }
 
-  let(:good_url) { ENV['ELASTICSEARCH_URL'] }
+  let(:good_url) { ENV.fetch('ELASTICSEARCH_URL', nil) }
   let(:bad_url) { 'localhost:9876' }
   let(:patched_good_client) { build_client(url: good_url, faulty: { instance: faulty }) }
   let(:patched_bad_client) { build_client(url: bad_url, faulty: { instance: faulty }) }

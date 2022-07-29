@@ -52,13 +52,13 @@ RSpec.context :circuits do
 
     it 'gets an ok result with try_run' do
       result = circuit.try_run { 'ok' }
-      expect(result.ok?).to eq(true)
+      expect(result.ok?).to be(true)
       expect(result.get).to eq('ok')
     end
 
     it 'captures an error with try_run' do
       result = circuit.try_run { raise 'fail' }
-      expect(result.error?).to eq(true)
+      expect(result.error?).to be(true)
       expect(result.error.cause.message).to eq('fail')
     end
 
@@ -125,39 +125,39 @@ RSpec.context :circuits do
       circuit.lock_open!
       circuit.reset!
       expect(circuit.history).to eq([])
-      expect(circuit.status.closed?).to eq(true)
-      expect(circuit.status.locked_open?).to eq(false)
+      expect(circuit.status.closed?).to be(true)
+      expect(circuit.status.locked_open?).to be(false)
     end
 
     it 'does not close circuit until past sample threshold' do
       circuit = Faulty::Circuit.new('test', **options.merge(rate_threshold: 0, sample_threshold: 2))
       circuit.try_run { raise 'fail' }
-      expect(circuit.status.closed?).to eq(true)
+      expect(circuit.status.closed?).to be(true)
       circuit.try_run { raise 'fail' }
-      expect(circuit.status.open?).to eq(true)
+      expect(circuit.status.open?).to be(true)
     end
 
     it 'does not close circuit until past rate threshold' do
       circuit = Faulty::Circuit.new('test', **options.merge(rate_threshold: 0.6, sample_threshold: 0))
       circuit.try_run { 'ok' }
       circuit.try_run { raise 'fail' }
-      expect(circuit.status.closed?).to eq(true)
+      expect(circuit.status.closed?).to be(true)
       circuit.try_run { raise 'fail' }
-      expect(circuit.status.open?).to eq(true)
+      expect(circuit.status.open?).to be(true)
     end
 
     it 'transitions from open to half-open after cool-down elapses' do
       open_circuit
       Timecop.freeze(Time.now + 300)
-      expect(open_circuit.status.half_open?).to eq(true)
+      expect(open_circuit.status.half_open?).to be(true)
     end
 
     it 'opens circuit if it fails in half-open' do
       open_circuit
       Timecop.freeze(Time.now + 300)
       result = open_circuit.try_run { raise 'fail' }
-      expect(result.error?).to eq(true)
-      expect(open_circuit.status.open?).to eq(true)
+      expect(result.error?).to be(true)
+      expect(open_circuit.status.open?).to be(true)
     end
 
     it 'closes circuit if it succeeds in half-open' do
@@ -165,13 +165,13 @@ RSpec.context :circuits do
       Timecop.freeze(Time.now + 300)
       result = open_circuit.run { 'ok' }
       expect(result).to eq('ok')
-      expect(open_circuit.status.closed?).to eq(true)
+      expect(open_circuit.status.closed?).to be(true)
     end
 
     it 'skips running if open' do
       ran = false
       open_circuit.try_run { ran = true }
-      expect(ran).to eq(false)
+      expect(ran).to be(false)
     end
 
     it 'reads from the cache if available and does not run' do
@@ -207,7 +207,7 @@ RSpec.context :circuits do
       result = circuit.run(cache: 'test_cache') { raise 'fail' }
       expect(result).to eq('cached')
       # Still records the failure
-      expect(circuit.history.last[1]).to eq(false)
+      expect(circuit.history.last[1]).to be(false)
     end
 
     it 'raises unwrapped error if error is excluded' do
@@ -277,12 +277,12 @@ RSpec.context :circuits do
 
     it 'gets status without setting options' do
       circuit.status
-      expect(storage.get_options(circuit)).to eq(nil)
+      expect(storage.get_options(circuit)).to be_nil
     end
 
     it 'locks circuit without setting options' do
       circuit.lock_open!
-      expect(storage.get_options(circuit)).to eq(nil)
+      expect(storage.get_options(circuit)).to be_nil
     end
 
     it 'gets default options if not stored' do

@@ -51,7 +51,7 @@ RSpec.describe Faulty::ImmutableOptions do
   if defined?(RUBY_ENGINE) && RUBY_ENGINE != 'truffleruby'
     it 'freezes options after initialization' do
       opts = example_class.new(name: 'foo')
-      expect { opts.name = 'bar' }.to raise_error(/can\'t modify frozen/)
+      expect { opts.name = 'bar' }.to raise_error(/can't modify frozen/)
     end
   end
 end

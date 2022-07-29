@@ -3,7 +3,7 @@
 RSpec.describe Faulty::Storage::FallbackChain do
   let(:failing_class) do
     Class.new do
-      def method_missing(_method, *_args) # rubocop:disable Style/MethodMissingSuper
+      def method_missing(_method, *_args)
         raise 'fail'
       end
 
@@ -72,8 +72,8 @@ RSpec.describe Faulty::Storage::FallbackChain do
   context 'with #lock' do
     it 'delegates to all when successful' do
       succeeding_chain.lock(circuit, :open)
-      expect(memory.status(circuit).locked_open?).to eq(true)
-      expect(memory2.status(circuit).locked_open?).to eq(true)
+      expect(memory.status(circuit).locked_open?).to be(true)
+      expect(memory2.status(circuit).locked_open?).to be(true)
     end
 
     it 'continues delegating after failure and raises' do
@@ -84,8 +84,8 @@ RSpec.describe Faulty::Storage::FallbackChain do
         'Faulty::Storage::FallbackChain#lock failed for some storage backends: fail'
       )
 
-      expect(memory.status(circuit).locked_open?).to eq(true)
-      expect(memory2.status(circuit).locked_open?).to eq(true)
+      expect(memory.status(circuit).locked_open?).to be(true)
+      expect(memory2.status(circuit).locked_open?).to be(true)
     end
 
     it 'raises error if all storages fail' do
@@ -127,7 +127,7 @@ RSpec.describe Faulty::Storage::FallbackChain do
       args.empty? ? expected.with(no_args) : expected.with(*args)
       expect(memory).to expected
       expect(memory2).to expected
-      expect(chain.public_send(action, *args)).to eq(nil)
+      expect(chain.public_send(action, *args)).to be_nil
     end
   end
 

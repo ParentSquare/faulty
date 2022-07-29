@@ -10,13 +10,15 @@ Gem::Specification.new do |spec|
   spec.authors = ['Justin Howard']
   spec.email = ['jmhoward0@gmail.com']
   spec.licenses = ['MIT']
-
   spec.summary = 'Fault-tolerance tools for ruby based on circuit-breakers'
   spec.homepage = 'https://github.com/ParentSquare/faulty'
 
-  spec.files = `git ls-files -z`
-    .split("\x0")
-    .reject { |f| f.match(%r{^spec/}) }
+  rubydoc = 'https://www.rubydoc.info/gems'
+  spec.metadata['rubygems_mfa_required'] = 'true'
+  spec.metadata['changelog_uri'] = "#{spec.homepage}/blob/master/CHANGELOG.md"
+  spec.metadata['documentation_uri'] = "#{rubydoc}/#{spec.name}/#{spec.version}"
+
+  spec.files = Dir['lib/**/*.rb', '*.md', '*.txt', '.yardopts']
   spec.require_paths = ['lib']
 
   spec.required_ruby_version = '>= 2.3'
@@ -29,8 +31,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'json'
   spec.add_development_dependency 'redis', '>= 3.0'
   spec.add_development_dependency 'rspec', '~> 3.8'
-  # 0.81 is the last rubocop version with Ruby 2.3 support
-  spec.add_development_dependency 'rubocop', '0.81.0'
-  spec.add_development_dependency 'rubocop-rspec', '1.38.1'
   spec.add_development_dependency 'timecop', '>= 0.9'
 end

@@ -462,15 +462,13 @@ class Faulty
       end
       options.notifier.notify(:circuit_failure, circuit: self, status: status, error: error)
 
-      opened = if status.half_open?
+      if status.half_open?
         reopen!(error, status.opened_at)
       elsif status.fails_threshold?
         open!(error)
       else
         false
       end
-
-      opened
     end
 
     def deprecated_entry?
@@ -550,7 +548,7 @@ class Faulty
     # @return [Boolean] true if the cache should be refreshed
     def cache_should_refresh?(key)
       time = options.cache.read(cache_refresh_key(key.to_s)).to_i
-      time + (rand * 2 - 1) * options.cache_refresh_jitter < Faulty.current_time
+      time + (((rand * 2) - 1) * options.cache_refresh_jitter) < Faulty.current_time
     end
 
     # Get the next time to refresh the cache when writing to it

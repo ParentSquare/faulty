@@ -12,11 +12,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        redis: [4]
-        ruby: [2.3, 2.4, 2.5, 2.6, 2.7, 3.0, jruby-9.2.10, truffleruby-20.2.0]
+        ruby: ['2.5', '2.6', '2.7', '3.0', jruby-9.3.6.0, truffleruby-22.2.0]
+        bundler: [default]
+        redis: ['4']
         include:
-          - redis: 3
-            ruby: 2.7
+          - ruby: '2.7'
+            bundler: 'default'
+            redis: '3'
+          - ruby: '2.3'
+            bundler: '1'
+            redis: '4'
+          - ruby: '2.4'
+            bundler: '1'
+            redis: '4'
     services:
       redis:
         image: redis
@@ -28,12 +36,13 @@ jobs:
           - 9200:9200
         options: -e="discovery.type=single-node" --health-cmd="curl http://localhost:9200/_cluster/health" --health-interval=3s --health-timeout=5s --health-retries=20
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ruby/setup-ruby@v1
         env:
           REDIS_VERSION: ${{ matrix.redis }}
         with:
           ruby-version: ${{ matrix.ruby }}
+          bundler: ${{ matrix.bundler }}
           bundler-cache: true
       - run: bundle exec rubocop
         if: matrix.ruby == '2.7'

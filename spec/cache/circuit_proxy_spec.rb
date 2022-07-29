@@ -6,7 +6,7 @@ RSpec.describe Faulty::Cache::CircuitProxy do
 
   let(:failing_cache) do
     Class.new do
-      def method_missing(*_args) # rubocop:disable Style/MethodMissingSuper
+      def method_missing(*_args)
         raise 'fail'
       end
 
@@ -38,7 +38,7 @@ RSpec.describe Faulty::Cache::CircuitProxy do
   it 'delegates fault_tolerant? directly' do
     backend = instance_double(Faulty::Cache::Mock)
     marker = Object.new
-    expect(backend).to receive(:fault_tolerant?).and_return(marker)
+    allow(backend).to receive(:fault_tolerant?).and_return(marker)
     expect(described_class.new(backend, notifier: notifier).fault_tolerant?).to eq(marker)
   end
 end

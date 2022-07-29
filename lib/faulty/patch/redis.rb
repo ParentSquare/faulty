@@ -81,10 +81,8 @@ class Faulty
         return super unless @faulty_circuit
 
         reply = super
-        if reply.is_a?(::Redis::CommandError)
-          if reply.message.start_with?('BUSY')
-            reply = BusyError.new(reply.message)
-          end
+        if reply.is_a?(::Redis::CommandError) && reply.message.start_with?('BUSY')
+          reply = BusyError.new(reply.message)
         end
 
         reply

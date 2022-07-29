@@ -94,7 +94,7 @@ RSpec.describe Faulty do
     described_class.init
     instance1 = described_class.new
     instance2 = described_class.new
-    expect(described_class.register(:named, instance1)).to eq(nil)
+    expect(described_class.register(:named, instance1)).to be_nil
     expect(described_class.register(:named, instance2)).to eq(instance1)
     expect(described_class[:named]).to eq(instance1)
   end
@@ -175,8 +175,8 @@ RSpec.describe Faulty do
 
   it 'can be disabled and enabled' do
     described_class.disable!
-    expect(described_class.disabled?).to eq(true)
+    expect(described_class.disabled?).to be(true)
     described_class.enable!
-    expect(described_class.disabled?).to eq(false)
+    expect(described_class.disabled?).to be(false)
   end
 end

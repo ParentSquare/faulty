@@ -5,7 +5,7 @@ RSpec.describe Faulty::Cache::FaultTolerantProxy do
 
   let(:failing_cache_class) do
     Class.new do
-      def method_missing(*_args) # rubocop:disable Style/MethodMissingSuper
+      def method_missing(*_args)
         raise 'fail'
       end
 
@@ -31,7 +31,7 @@ RSpec.describe Faulty::Cache::FaultTolerantProxy do
     expect(notifier).to receive(:notify)
       .with(:cache_failure, key: 'foo', action: :read, error: instance_of(RuntimeError))
     result = described_class.new(failing_cache, notifier: notifier).read('foo')
-    expect(result).to eq(nil)
+    expect(result).to be_nil
   end
 
   it 'delegates to backend when writing succeeds' do
