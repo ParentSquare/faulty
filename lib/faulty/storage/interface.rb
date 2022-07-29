@@ -172,6 +172,17 @@ class Faulty
         raise NotImplementedError
       end
 
+      # Reset all circuits
+      #
+      # Some implementions may clear circuits on a best-effort basis since
+      # all circuits may not be known.
+      #
+      # @raise NotImplementedError If the storage backend does not support clearing.
+      # @return [void]
+      def clear
+        raise NotImplementedError
+      end
+
       # Can this storage backend raise an error?
       #
       # If the storage backend returns false from this method, it will be wrapped

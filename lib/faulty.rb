@@ -116,6 +116,7 @@ class Faulty
 
     # Get a list of all circuit names for the default instance
     #
+    # @see #list_circuits
     # @return [Array<String>] The circuit names
     def list_circuits
       options.storage.list
@@ -156,6 +157,14 @@ class Faulty
     # @return [Boolean] True if disabled
     def disabled?
       @disabled == true
+    end
+
+    # Reset all circuits for the default instance
+    #
+    # @see #clear
+    # @return [void]
+    def clear!
+      default.clear
     end
   end
 
@@ -253,6 +262,20 @@ class Faulty
   # @return [Array<String>] The circuit names
   def list_circuits
     options.storage.list
+  end
+
+  # Reset all circuits
+  #
+  # Intended for use in tests. This can be expensive and is not appropriate
+  # to call in production code
+  #
+  # See the documentation for your chosen backend for specific semantics and
+  # safety concerns. For example, the Redis backend resets all circuits, but
+  # it does not clear the circuit list to maintain thread-safety.
+  #
+  # @return [void]
+  def clear!
+    options.storage.clear
   end
 
   private

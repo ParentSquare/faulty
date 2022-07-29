@@ -196,6 +196,13 @@ class Faulty
         @circuits.keys
       end
 
+      # Clears all circuits
+      #
+      # @return [void]
+      def clear
+        @circuits.clear
+      end
+
       # Memory storage is fault-tolerant by default
       #
       # @return [true]

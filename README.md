@@ -90,6 +90,7 @@ Also see "Release It!: Design and Deploy Production-Ready Software" by
   + [Other Built-in Listeners](#other-built-in-listeners)
   + [Custom Listeners](#custom-listeners)
 * [Disabling Faulty Globally](#disabling-faulty-globally)
+* [Testing with Faulty](#testing-with-faulty)
 * [How it Works](#how-it-works)
   + [Caching](#caching)
   + [Fault Tolerance](#fault-tolerance)
@@ -1172,6 +1173,24 @@ not affect the stored state of circuits.
 
 Faulty will **still use the cache** even when disabled. If you also want to
 disable the cache, configure Faulty to use a `Faulty::Cache::Null` cache.
+
+## Testing with Faulty
+
+Depending on your application, you could choose to
+[disable Faulty globally](#disabling-faulty-globally), but sometimes you may
+want to test your application's behavior in a failure scenario.
+
+If you have such tests, you will want to prevent failures in one test from
+affecting other tests. To clear all circuit states between tests, use `#clear!`.
+For example, with rspec:
+
+```ruby
+RSpec.configure do |config|
+  config.after do
+    Faulty.clear!
+  end
+end
+```
 
 ## How it Works
 

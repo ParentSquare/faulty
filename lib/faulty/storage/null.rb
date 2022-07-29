@@ -79,6 +79,11 @@ class Faulty
         []
       end
 
+      # @param (see Interface#clear)
+      # @return (see Interface#clear)
+      def clear
+      end
+
       # This backend is fault tolerant
       #
       # @param (see Interface#fault_tolerant?)

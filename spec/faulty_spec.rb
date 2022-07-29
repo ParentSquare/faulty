@@ -179,4 +179,10 @@ RSpec.describe Faulty do
     described_class.enable!
     expect(described_class.disabled?).to be(false)
   end
+
+  it 'clears circuits' do
+    instance.circuit('test').run { 'ok' }
+    instance.clear!
+    expect(instance.circuit('test').history).to eq([])
+  end
 end
