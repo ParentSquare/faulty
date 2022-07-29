@@ -38,7 +38,9 @@ class Faulty
     :sample_size,
     :options,
     :stub
-  ) do
+  )
+
+  class Status
     include ImmutableOptions
 
     # The allowed state values

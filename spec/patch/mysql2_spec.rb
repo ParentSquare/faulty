@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-RSpec.describe 'Faulty::Patch::Mysql2', if: defined?(Mysql2) do # rubocop:disable RSpec/DescribeClass
+RSpec.describe 'Faulty::Patch::Mysql2', if: defined?(Mysql2) do
   def new_client(opts = {})
     Mysql2::Client.new({
-      username: ENV['MYSQL_USER'],
-      password: ENV['MYSQL_PASSWORD'],
-      host: ENV['MYSQL_HOST'],
-      port: ENV['MYSQL_PORT'],
-      socket: ENV['MYSQL_SOCKET']
+      username: ENV.fetch('MYSQL_USER', nil),
+      password: ENV.fetch('MYSQL_PASSWORD', nil),
+      host: ENV.fetch('MYSQL_HOST', nil),
+      port: ENV.fetch('MYSQL_PORT', nil),
+      socket: ENV.fetch('MYSQL_SOCKET', nil)
     }.merge(opts))
   end
 
@@ -76,7 +76,7 @@ RSpec.describe 'Faulty::Patch::Mysql2', if: defined?(Mysql2) do # rubocop:disabl
     client.query('BEGIN')
     client.query('INSERT INTO test VALUES(1)')
     trip_circuit
-    expect(client.query('COMMIT')).to eq(nil)
+    expect(client.query('COMMIT')).to be_nil
     expect { client.query('SELECT * FROM test') }
       .to raise_error(Faulty::Patch::Mysql2::OpenCircuitError)
     faulty.circuit('mysql2').reset!
@@ -88,7 +88,7 @@ RSpec.describe 'Faulty::Patch::Mysql2', if: defined?(Mysql2) do # rubocop:disabl
     client.query('BEGIN')
     client.query('INSERT INTO test VALUES(1)')
     trip_circuit
-    expect(client.query('/* hi there */ ROLLBACK')).to eq(nil)
+    expect(client.query('/* hi there */ ROLLBACK')).to be_nil
     expect { client.query('SELECT * FROM test') }
       .to raise_error(Faulty::Patch::Mysql2::OpenCircuitError)
     faulty.circuit('mysql2').reset!

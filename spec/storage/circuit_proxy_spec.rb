@@ -7,7 +7,7 @@ RSpec.describe Faulty::Storage::CircuitProxy do
 
   let(:failing_storage) do
     Class.new do
-      def method_missing(*_args) # rubocop:disable Style/MethodMissingSuper
+      def method_missing(*_args)
         raise 'fail'
       end
 

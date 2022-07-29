@@ -11,7 +11,6 @@ gemspec
 not_jruby = %i[ruby mingw x64_mingw].freeze
 
 gem 'activesupport', '>= 4.2'
-gem 'bundler', '>= 1.17', '< 3'
 gem 'byebug', platforms: not_jruby
 # Open source licensed elasticsearch
 gem 'elasticsearch', '> 7', '< 7.14'
@@ -26,6 +25,11 @@ gem 'simplecov', '>= 0.17.1'
 # https://github.com/fortissimo1997/simplecov-lcov/pull/25
 gem 'simplecov-lcov', '~> 0.7', '< 0.8'
 gem 'yard', '~> 0.9.25', platforms: not_jruby
+
+if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
+  gem 'rubocop', '~> 1.32.0'
+  gem 'rubocop-rspec', '~> 2.12'
+end
 
 if ENV['REDIS_VERSION']
   gem 'redis', "~> #{ENV['REDIS_VERSION']}"

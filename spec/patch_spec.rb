@@ -27,7 +27,7 @@ RSpec.describe Faulty::Patch do
 
     it 'returns nil if hash is nil' do
       circuit = described_class.circuit_from_hash('test', nil)
-      expect(circuit).to eq(nil)
+      expect(circuit).to be_nil
     end
 
     it 'can specify a custom name' do

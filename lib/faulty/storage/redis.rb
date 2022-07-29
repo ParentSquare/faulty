@@ -354,13 +354,11 @@ class Faulty
       #   the watch succeeds and the comparison passes
       # @return [Array] An array of Redis results from the commands executed
       #   inside the block
-      def watch_exec(key, old)
+      def watch_exec(key, old, &block)
         redis do |r|
           r.watch(key) do
             if old.include?(r.get(key))
-              r.multi do |m|
-                yield m
-              end
+              r.multi(&block)
             else
               r.unwatch
               nil
@@ -373,9 +371,9 @@ class Faulty
       #
       # @yield [Redis] Yields the connection to the block
       # @return The value returned from the block
-      def redis
+      def redis(&block)
         if options.client.respond_to?(:with)
-          options.client.with { |redis| yield redis }
+          options.client.with(&block)
         else
           yield options.client
         end
@@ -385,8 +383,8 @@ class Faulty
       #
       # @yield [Redis::Pipeline] Yields the connection to the block
       # @return [void]
-      def pipe
-        redis { |r| r.pipelined { |p| yield p } }
+      def pipe(&block)
+        redis { |r| r.pipelined(&block) }
       end
 
       # Map raw Redis history entries to Faulty format
@@ -435,7 +433,7 @@ class Faulty
       end
 
       def check_pool_options!
-        if options.client.class.name == 'ConnectionPool'
+        if options.client.instance_of?(ConnectionPool)
           timeout = options.client.instance_variable_get(:@timeout)
           warn(<<~MSG) if timeout > 2
             Faulty recommends setting ConnectionPool timeouts <= 2 to prevent

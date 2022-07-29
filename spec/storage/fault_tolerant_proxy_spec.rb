@@ -5,7 +5,7 @@ RSpec.describe Faulty::Storage::FaultTolerantProxy do
 
   let(:failing_storage_class) do
     Class.new do
-      def method_missing(*_args) # rubocop:disable Style/MethodMissingSuper
+      def method_missing(*_args)
         raise 'fail'
       end
 
@@ -30,7 +30,7 @@ RSpec.describe Faulty::Storage::FaultTolerantProxy do
       .with(:storage_failure, circuit: circuit, action: :entry, error: instance_of(RuntimeError))
     status = described_class.new(failing_storage, notifier: notifier)
       .entry(circuit, Faulty.current_time, false, Faulty::Status.new(options: circuit.options))
-    expect(status.stub).to eq(true)
+    expect(status.stub).to be(true)
   end
 
   it 'returns stub status when getting #status' do
@@ -38,7 +38,7 @@ RSpec.describe Faulty::Storage::FaultTolerantProxy do
       .with(:storage_failure, circuit: circuit, action: :status, error: instance_of(RuntimeError))
     status = described_class.new(failing_storage, notifier: notifier)
       .status(circuit)
-    expect(status.stub).to eq(true)
+    expect(status.stub).to be(true)
   end
 
   shared_examples 'delegated action' do

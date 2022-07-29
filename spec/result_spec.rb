@@ -5,11 +5,11 @@ RSpec.describe Faulty::Result do
   let(:error) { described_class.new(error: StandardError.new) }
 
   it 'can be constructed with an ok' do
-    expect(ok.ok?).to eq(true)
+    expect(ok.ok?).to be(true)
   end
 
   it 'can be constructed with an error' do
-    expect(error.error?).to eq(true)
+    expect(error.error?).to be(true)
   end
 
   it 'raises an error if unchecked get is called' do
@@ -39,7 +39,7 @@ RSpec.describe Faulty::Result do
   end
 
   it 'does not confuse NOTHING with empty object' do
-    expect(described_class.new(ok: {}).ok?).to eq(true)
+    expect(described_class.new(ok: {}).ok?).to be(true)
   end
 
   it 'with ok #or_default passes value through' do

@@ -13,7 +13,7 @@ RSpec.describe Faulty::Cache::Mock do
     Timecop.travel(Time.now + 5)
     expect(cache.read('a key')).to eq('a value')
     Timecop.travel(Time.now + 6)
-    expect(cache.read('a key')).to eq(nil)
+    expect(cache.read('a key')).to be_nil
   end
 
   it 'is fault tolerant' do

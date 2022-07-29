@@ -5,7 +5,7 @@ class Faulty
   module Deprecation
     class << self
       # Call to raise errors instead of logging warnings for Faulty deprecations
-      def raise_errors!(enabled = true)
+      def raise_errors!(enabled = true) # rubocop:disable Style/OptionalBooleanParameter
         @raise_errors = (enabled == true)
       end
 

@@ -31,13 +31,13 @@ class Faulty
       #
       # @yield A block to run inside the circuit
       # @return The block return value
-      def faulty_run
+      def faulty_run(&block)
         faulty_running_key = "faulty_running_#{object_id}"
         return yield unless @faulty_circuit
         return yield if Thread.current[faulty_running_key]
 
         Thread.current[faulty_running_key] = true
-        @faulty_circuit.run { yield }
+        @faulty_circuit.run(&block)
       ensure
         Thread.current[faulty_running_key] = nil
       end
