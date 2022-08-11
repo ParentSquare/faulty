@@ -1,12 +1,46 @@
-## Release v0.8.6
+Changelog
+===================
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+[Unreleased]
+-------------------
+
+[0.8.7] - 2022-08-11
+-------------------
+
+### Added
+
+* Add a Faulty#clear method to reset all circuits #55 justinhoward
+
+### Fixed
+
+* Update rubocop cleanup gemspec #56 justinhoward
+
+[0.8.6] - 2022-02-24
+-------------------
+
+### Added
 
 * Define an inspect method that represent circuit #50 JuanitoFatas
 
-## Release v0.8.5
+[0.8.5] - 2022-02-17
+-------------------
+
+### Added
+
+* Add granular errors for Elasticsearch patch #48 justinhoward
+
+### Fixed
 
 * Fix yard warnings #49 justinhoward
 * Fix crash in Redis storage backend if opened_at was missing #46 justinhoward
-* Add granular errors for Elasticsearch patch #48 justinhoward
+
+### Changed
+
 * Return status conditionally for Storage::Interface#entry #45 justinhoward
 
 ### Deprecations
@@ -18,22 +52,35 @@
 * The error_module option is deprecated. Patches should use the error_mapper
   option instead. The option will be removed in 0.9
 
+[0.8.4] - 2022-01-28
+-------------------
 
-## Release v0.8.4
+### Added
 
 * Add Elasticsearch client patch #44 justinhoward
 
-## Release v0.8.2
+[0.8.2] - 2021-10-18
+-------------------
+
+### Fixed
 
 * Fix crash for older versions of concurrent-ruby #42 justinhoward
 
-## Release v0.8.1
+[0.8.1] - 2021-09-22
+-------------------
+
+### Changed
 
 * Add cause message to CircuitTrippedError #40 justinhoward
+
+### Fixed
+
 * Record failures for cache hits #41 justinhoward
 
+[0.8.0] - 2021-09-14
+-------------------
 
-## Release v0.8.0
+### Added
 
 * Store circuit options in the backend when run #34 justinhoward
 
@@ -52,16 +99,28 @@
   instances, so likely this will not be a breaking change for most
   cases.
 
-## Release v0.7.2
+[0.7.2] - 2021-09-02
+-------------------
+
+### Added
 
 * Add Faulty.disable! for disabling globally #38 justinhoward
+
+### Changed
+
 * Suppress circuit_success for proxy circuits #39 justinhoward
 
-## Release v0.7.1
+[0.7.1] - 2021-09-02
+-------------------
+
+### Fixed
 
 * Fix success event crash in log listener #37 justinhoward
 
-## Release v0.7.0
+[0.7.0] - 2021-09-02
+-------------------
+
+### Added
 
 * Add initial benchmarks and performance improvements #36 justinhoward
 
@@ -70,22 +129,37 @@
 The `circuit_success` event no longer contains the status value. Computing this
 value was causing performance problems.
 
-## Release v0.6.0
+[0.6.0] - 2021-06-10
+-------------------
+
+### Added
+
+* Capture an error for BUSY redis backend when patched #30 justinhoward
+* Add a patch for mysql2 #28 justinhoward
+
+### Fixed
 
 * docs, use correct state in description for skipped event #27 senny
 * Fix CI to set REDIS_VERSION correctly #31 justinhoward
 * Fix a potential memory leak in patches #32 justinhoward
-* Capture an error for BUSY redis backend when patched #30 justinhoward
-* Add a patch for mysql2 #28 justinhoward
 
-## Release v0.5.1
+[0.5.1] - 2021-05-28
+-------------------
+
+### Fixed
 
 * Fix Storage::FaultTolerantProxy to return empty history on entries fail #26 justinhoward
 
-## Release v0.5.0
+[0.5.0] - 2021-05-28
+-------------------
+
+### Added
 
 * Allow creating a new Faulty instance in Faulty#register #24 justinhoward
 * Add support for patches to core dependencies starting with redis #14 justinhoward
+
+### Fixed
+
 * Improve storage #entries performance by returning entries #23 justinhoward
 
 ### Breaking Changes
@@ -95,23 +169,35 @@ value was causing performance problems.
 * Faulty::Storage::Interface must now return a history array instead of a
   circuit status object. Custom storage backends must be updated.
 
-## Release v0.4.0
+[0.4.0] - 2021-02-19
+-------------------
+
+### Added
+
+* Explicitly add support for Redis 3 and 4 #15 justinhoward
+* Allow setting default circuit options on Faulty instances #16 justinhoward
+
+### Changed
 
 * Switch from Travis CI to GitHub actions #11 justinhoward
 * Only run rubocop for Ruby 2.7 in CI #12 justinhoward
-* Explicitly add support for Redis 3 and 4 #15 justinhoward
-* Allow setting default circuit options on Faulty instances #16 justinhoward
 * Switch to codacy for quality metrics #17 justinhoward
+* Allow passing custom circuit to AutoWire #22 justinhoward
+
+### Fixed
+
 * Small logic fix to README #19 silasb
 * Fix Redis storage dependency on ConnectionPool #21 justinhoward
-* Allow passing custom circuit to AutoWire #22 justinhoward
 
 ### Breaking Changes
 
 AutoWire.new is replaced with AutoWire.wrap and no longer creates an instance
 of AutoWire.
 
-## Release v0.3.0
+[0.3.0] - 2020-10-24
+-------------------
+
+### Added
 
 * Add tools for backend fault-tolerance #10
   * CircuitProxy for wrapping storage in an internal circuit
@@ -120,7 +206,10 @@ of AutoWire.
   * AutoWire wrappers for automatically configuring storage and cache
   * Better documentation for fault-tolerance
 
-## Release v0.2.0
+[0.2.0] - 2020-10-18
+-------------------
+
+### Changed
 
 * Remove Scopes and replace them with Faulty instances #9
 
@@ -129,28 +218,71 @@ of AutoWire.
 * `Faulty::Scope` has been removed. Use `Faulty.new` instead.
 * `Faulty` is now a class, not a module
 
-## Release v0.1.5
+[0.1.5] - 2020-10-18
+-------------------
+
+### Fixed
 
 * Fix redis storage to expire state key when using CAS #8
 
-## Release v0.1.4
+[0.1.4] - 2020-10-18
+-------------------
+
+### Fixed
 
 * Improve spec coverage for supporting classes #6
 * Fix redis bug where concurrent CAS requests could crash #7
 
-## Release v0.1.3
+[0.1.3] - 2020-09-29
+-------------------
 
-* Fix bug where memory storage would delete the newest entries #5
+### Added
+
 * Add HoneybadgerListener for error reporting #4
 
-## Release v0.1.2
+### Fixed
+
+* Fix bug where memory storage would delete the newest entries #5
+
+[0.1.2] - 2020-08-28
+-------------------
+
+### Fixed
 
 * Fix Storage::FaultTolerantProxy open and reopen methods #2
 
-## Release v0.1.1
+[0.1.1] - 2020-08-28
+-------------------
+
+### Fixed
 
 * Fix a crash when Storage::FaultTolerantProxy created a status stub #1
 
-## Release v0.1.0
+[0.1.0] - 2020-08-27
+-------------------
 
 Initial public release
+
+[Unreleased]: https://github.com/ParentSquare/faulty/compare/v0.5.0...HEAD
+[0.8.6]: https://github.com/ParentSquare/faulty/compare/v0.8.5...v0.8.6
+[0.8.5]: https://github.com/ParentSquare/faulty/compare/v0.8.4...v0.8.5
+[0.8.4]: https://github.com/ParentSquare/faulty/compare/v0.8.3...v0.8.4
+[0.8.3]: https://github.com/ParentSquare/faulty/compare/v0.8.2...v0.8.3
+[0.8.2]: https://github.com/ParentSquare/faulty/compare/v0.8.1...v0.8.2
+[0.8.1]: https://github.com/ParentSquare/faulty/compare/v0.8.0...v0.8.1
+[0.8.0]: https://github.com/ParentSquare/faulty/compare/v0.7.2...v0.8.0
+[0.7.2]: https://github.com/ParentSquare/faulty/compare/v0.7.1...v0.7.2
+[0.7.1]: https://github.com/ParentSquare/faulty/compare/v0.7.0...v0.7.1
+[0.7.0]: https://github.com/ParentSquare/faulty/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/ParentSquare/faulty/compare/v0.5.1...v0.5.0
+[0.5.1]: https://github.com/ParentSquare/faulty/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/ParentSquare/faulty/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/ParentSquare/faulty/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/ParentSquare/faulty/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/ParentSquare/faulty/compare/v0.1.5...v0.2.0
+[0.1.5]: https://github.com/ParentSquare/faulty/releases/tag/v0.1.4...v0.1.5
+[0.1.4]: https://github.com/ParentSquare/faulty/releases/tag/v0.1.3...v0.1.4
+[0.1.3]: https://github.com/ParentSquare/faulty/releases/tag/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/ParentSquare/faulty/releases/tag/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/ParentSquare/faulty/releases/tag/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/ParentSquare/faulty/releases/tag/v0.1.0
