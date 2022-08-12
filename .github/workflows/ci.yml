@@ -55,14 +55,10 @@ jobs:
         env:
           MYSQL_USER: root
           MYSQL_PASSWORD: root
-      - name: Run codacy-coverage-reporter
-        env:
-          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
-        if: matrix.ruby == '2.7' && env.CODACY_PROJECT_TOKEN
-        uses: codacy/codacy-coverage-reporter-action@master
+      - uses: codecov/codecov-action@v3
+        if: matrix.ruby == '2.7'
         with:
-          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-          coverage-reports: coverage/lcov/faulty.lcov
+          files: coverage/coverage.xml
 
   release:
     needs: test

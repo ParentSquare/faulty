@@ -20,15 +20,13 @@ gem 'irb', '~> 1.0'
 gem 'mysql2', '>= 0.5.0', platforms: not_jruby
 gem 'redcarpet', '~> 3.5', platforms: not_jruby
 gem 'rspec_junit_formatter', '~> 0.4'
-gem 'simplecov', '>= 0.17.1'
-# 0.8 is incompatible with simplecov < 0.18
-# https://github.com/fortissimo1997/simplecov-lcov/pull/25
-gem 'simplecov-lcov', '~> 0.7', '< 0.8'
 gem 'yard', '~> 0.9.25', platforms: not_jruby
 
 if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
   gem 'rubocop', '~> 1.32.0'
   gem 'rubocop-rspec', '~> 2.12'
+  gem 'simplecov', '>= 0.17.1'
+  gem 'simplecov-cobertura', '~> 2.1'
 end
 
 if ENV['REDIS_VERSION']
