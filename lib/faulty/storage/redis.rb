@@ -232,7 +232,7 @@ class Faulty
         end
 
         state = futures[:state].value&.to_sym || :closed
-        opened_at = futures[:opened_at].value ? futures[:opened_at].value.to_i : nil
+        opened_at = futures[:opened_at].value ? Float(futures[:opened_at].value) : nil
         opened_at = Faulty.current_time - options.circuit_ttl if state == :open && opened_at.nil?
 
         Faulty::Status.from_entries(
@@ -356,7 +356,7 @@ class Faulty
       #
       # @return [Integer] The current block number
       def current_list_block
-        (Faulty.current_time.to_f / options.list_granularity).floor
+        (Faulty.current_time / options.list_granularity).floor
       end
 
       # Watch a Redis key and exec commands only if the key matches the expected
@@ -411,7 +411,7 @@ class Faulty
       def map_entries(raw_entries)
         raw_entries.map do |e|
           time, state = e.split(ENTRY_SEPARATOR)
-          [time.to_i, state == '1']
+          [Float(time), state == '1']
         end
       end
 

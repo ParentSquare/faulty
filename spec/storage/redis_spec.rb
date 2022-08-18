@@ -111,4 +111,12 @@ RSpec.describe Faulty::Storage::Redis do
       expect(status.opened_at).to eq(Faulty.current_time - storage.options.circuit_ttl)
     end
   end
+
+  context 'when history entries are integers and floats' do
+    it 'gets floats' do
+      client.lpush('faulty:circuit:test:entries', '1660865630:1')
+      client.lpush('faulty:circuit:test:entries', '1660865646.897674:1')
+      expect(storage.history(circuit)).to eq([[1_660_865_630.0, true], [1_660_865_646.897674, true]])
+    end
+  end
 end
