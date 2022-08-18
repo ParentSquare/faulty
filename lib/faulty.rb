@@ -129,7 +129,7 @@ class Faulty
     #
     # @return [Time] The current time
     def current_time
-      Time.now.to_i
+      Time.now.to_f
     end
 
     # Disable Faulty circuits

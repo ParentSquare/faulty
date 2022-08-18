@@ -263,7 +263,7 @@ of AutoWire.
 
 Initial public release
 
-[Unreleased]: https://github.com/ParentSquare/faulty/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/ParentSquare/faulty/compare/v0.8.7...HEAD
 [0.8.7]: https://github.com/ParentSquare/faulty/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/ParentSquare/faulty/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/ParentSquare/faulty/compare/v0.8.4...v0.8.5
