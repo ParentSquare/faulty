@@ -85,6 +85,7 @@ Security/CompoundHash: { Enabled: true }
 Security/IoMethods: { Enabled: true }
 
 Style/ArgumentsForwarding: { Enabled: true }
+Style/ClassEqualityComparison: { Enabled: false }
 Style/CollectionCompact: { Enabled: true }
 Style/DocumentDynamicEvalDefinition: { Enabled: true }
 Style/Documentation: { Enabled: false }

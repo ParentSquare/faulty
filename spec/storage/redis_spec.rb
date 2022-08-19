@@ -119,4 +119,12 @@ RSpec.describe Faulty::Storage::Redis do
       expect(storage.history(circuit)).to eq([[1_660_865_630.0, true], [1_660_865_646.897674, true]])
     end
   end
+
+  context 'when ConnectionPool is not present' do
+    before { hide_const('ConnectionPool') }
+
+    it 'can construct a storage' do
+      storage
+    end
+  end
 end
