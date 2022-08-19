@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]
 -------------------
 
+[0.9.0] - 2022-08-18
+---------------------
+
+### Added
+
+* Setup codecov code coverage #57 justinhoward
+
+### Fixed
+
+* Fix a regression where ConnectionPool was required for the redis storage #58 justinhoward
+
+### Changed
+
+* Change current_time to a float #59 justinhoward
+
+### Removed
+
+* Remove features deprecated in 0.8.5 #60 justinhoward
+
+### Breaking
+
+* `Faulty.current_time` is now a float instead of an integer
+* The 3 argument form of `Storage::Interface#entry` deprecated in 0.8.5 is now
+  removed.
+* The `error_module` circuit option deprecated in 0.8.5 is now removed.
+
 [0.8.7] - 2022-08-11
 -------------------
 
@@ -263,7 +289,8 @@ of AutoWire.
 
 Initial public release
 
-[Unreleased]: https://github.com/ParentSquare/faulty/compare/v0.8.7...HEAD
+[Unreleased]: https://github.com/ParentSquare/faulty/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/ParentSquare/faulty/compare/v0.8.7...v0.9.0
 [0.8.7]: https://github.com/ParentSquare/faulty/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/ParentSquare/faulty/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/ParentSquare/faulty/compare/v0.8.4...v0.8.5
