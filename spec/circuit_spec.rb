@@ -305,24 +305,6 @@ RSpec.context :circuits do
       end
     end
 
-    context 'with error_module' do
-      let(:options) do
-        {
-          cache: cache,
-          error_module: custom_error_module,
-          storage: storage
-        }
-      end
-
-      around { |example| Faulty::Deprecation.silenced(&example) }
-
-      it 'raises custom errors' do
-        expect do
-          circuit.run { raise 'fail' }
-        end.to raise_error(custom_error_module::CircuitFailureError)
-      end
-    end
-
     context 'with error_mapper lambda' do
       let(:options) do
         {
