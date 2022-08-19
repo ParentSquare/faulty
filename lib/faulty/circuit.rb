@@ -98,7 +98,6 @@ class Faulty
       :sample_threshold,
       :errors,
       :error_mapper,
-      :error_module,
       :exclude,
       :cache,
       :notifier,
@@ -158,17 +157,6 @@ class Faulty
         unless cache_refreshes_after.nil?
           self.cache_refresh_jitter = 0.2 * cache_refreshes_after
         end
-
-        deprecated_error_module
-      end
-
-      private
-
-      def deprecated_error_module
-        return unless error_module
-
-        Deprecation.method(self.class, :error_module, note: 'See :error_mapper', sunset: '0.9.0')
-        self.error_mapper = error_module
       end
     end
 
@@ -442,11 +430,7 @@ class Faulty
 
     # @return [Boolean] True if the circuit transitioned to closed
     def success!(status)
-      if deprecated_entry?
-        storage.entry(self, Faulty.current_time, true, nil)
-      else
-        storage.entry(self, Faulty.current_time, true)
-      end
+      storage.entry(self, Faulty.current_time, true, nil)
       closed = close! if status.half_open?
 
       options.notifier.notify(:circuit_success, circuit: self)
@@ -455,11 +439,7 @@ class Faulty
 
     # @return [Boolean] True if the circuit transitioned to open
     def failure!(status, error)
-      status = if deprecated_entry?
-        storage.entry(self, Faulty.current_time, false, status)
-      else
-        deprecated_entry(status)
-      end
+      status = storage.entry(self, Faulty.current_time, false, status)
       options.notifier.notify(:circuit_failure, circuit: self, status: status, error: error)
 
       if status.half_open?
@@ -469,23 +449,6 @@ class Faulty
       else
         false
       end
-    end
-
-    def deprecated_entry?
-      return @deprecated_entry unless @deprecated_entry.nil?
-
-      @deprecated_entry = storage.method(:entry).arity == 4
-    end
-
-    def deprecated_entry(status)
-      Faulty::Deprecation.deprecate(
-        'Returning entries array from entry',
-        note: 'see Storate::Interface#entry',
-        sunset: '0.9'
-      )
-
-      entries = storage.entry(self, Faulty.current_time, false)
-      Status.from_entries(entries, **status.to_h)
     end
 
     def skipped!
