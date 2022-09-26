@@ -1075,6 +1075,7 @@ pg = PG::Connection.new(host: 'localhost', faulty: {
 ```
 
 
+
 ### Patch::Elasticsearch
 
 [`Faulty::Patch::Elasticsearch`](https://www.rubydoc.info/gems/faulty/Faulty/Patch/Elasticsearch)
