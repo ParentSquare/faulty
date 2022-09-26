@@ -1047,6 +1047,33 @@ mysql.query('SELECT * FROM users') # raises Faulty::CircuitError if connection f
 mysql = Mysql2::Client.new(host: '127.0.0.1')
 mysql.query('SELECT * FROM users') # not protected by a circuit
 ```
+### Patch::Postgres
+
+[`Faulty::Patch::Postgres`](https://www.rubydoc.info/gems/faulty/Faulty/Patch/Postgres)
+protects a `PG::Connection` with an internal circuit. Pass a `:faulty` key along
+with your connection options to enable the circuit breaker.
+
+Faulty supports the pg gem versions 1.0 and greater.
+
+```ruby
+require 'faulty/patch/postgres'
+
+pg = PG::Connection.new(host: 'localhost', faulty: {
+  # The name for the Postgres circuit
+  name: 'postgres'
+
+  # The faulty instance to use
+  # This can also be a registered faulty instance or a constant name. See API
+  # docs for more details
+  instance: Faulty.default
+
+  # By default, circuit errors will be subclasses of PG::Error
+  # To disable this behavior, set patch_errors to false and Faulty
+  # will raise its default errors
+  patch_errors: true
+})
+```
+
 
 ### Patch::Elasticsearch
 
