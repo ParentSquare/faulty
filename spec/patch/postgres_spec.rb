@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-Rspec.describe 'Faulty::Patch::Postgres', if defined?(PG) do
+RSpec.describe 'Faulty::Patch::Postgres', if: defined?(PG) do
   def new_client(options = {})
     PG::Connection.new({
       username: ENV.fetch('POSTGRES_USER', nil),
@@ -75,7 +75,7 @@ Rspec.describe 'Faulty::Patch::Postgres', if defined?(PG) do
       client.query('INSERT INTO test VALUES(1)')
       trip_circuit
       expect { client.query('COMMIT') }.to be_nil
-      expect(client.query('SELECT * FROM test').to raise_error(Faulty::Patch::PG::ConnectionError)
+      expect(client.query('SELECT * FROM test')).to raise_error(Faulty::Patch::PG::ConnectionError)
       faulty.circuit('postgres').reset
       expect(client.query('SELECT * FROM test').to_a).to eq([{ 'id' => '1'}])
   end
