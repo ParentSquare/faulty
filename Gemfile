@@ -16,7 +16,9 @@ gem 'byebug', platforms: not_jruby
 gem 'elasticsearch', '> 7', '< 7.14'
 gem 'honeybadger', '>= 2.0'
 gem 'irb', '~> 1.0'
+gem 'pg', '~> 1.1'
 # Minimum of 0.5.0 for specific error classes
+gem 'mysql2', '>= 0.5.0', platforms: not_jruby
 gem 'redcarpet', '~> 3.5', platforms: not_jruby
 gem 'rspec_junit_formatter', '~> 0.4'
 gem 'yard', '~> 0.9.25', platforms: not_jruby
