@@ -19,6 +19,7 @@ end
 require 'faulty'
 require 'faulty/patch/redis'
 require 'faulty/patch/elasticsearch'
+require 'faulty/patch/postgres'
 require 'timecop'
 require 'redis'
 require 'json'
