@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ['2.5', '2.6', '2.7', '3.0', jruby-9.3.6.0, truffleruby-22.2.0]
+        ruby: ['2.5', '2.6', '2.7', '3.0', jruby-head, truffleruby-head]
         bundler: [default]
         redis: ['4']
         include:
@@ -44,11 +44,6 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           bundler: ${{ matrix.bundler }}
           bundler-cache: true
-      - run: bundle exec rubocop
-        if: matrix.ruby == '2.7'
-      - run: bin/yardoc --fail-on-warning
-        if: matrix.ruby == '2.7'
-      - run: bin/check-version
       - name: start MySQL
         run: sudo /etc/init.d/mysql start
       - run: bundle exec rspec --format doc
@@ -56,12 +51,43 @@ jobs:
           MYSQL_USER: root
           MYSQL_PASSWORD: root
       - uses: codecov/codecov-action@v3
-        if: matrix.ruby == '2.7'
+        if: matrix.ruby == '2.7' && matrix.redis == '4'
         with:
           files: coverage/coverage.xml
 
+  rubocop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+          bundler-cache: true
+      - run: bundle exec rubocop
+
+  yard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+          bundler-cache: true
+      - run: bin/yardoc --fail-on-warning
+
+  check_version:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+          bundler-cache: true
+      - run: bin/check-version
+
   release:
-    needs: test
+    needs: [test, rubocop, yard, check_version]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
