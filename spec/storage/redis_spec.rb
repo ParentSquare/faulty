@@ -54,7 +54,7 @@ RSpec.describe Faulty::Storage::Redis do
   end
 
   context 'when Redis has high timeout' do
-    let(:client) { Redis.new(timeout: 5) }
+    let(:client) { Redis.new(timeout: 5.0) }
 
     it 'prints timeout warning' do
       timeouts = { connect_timeout: 5.0, read_timeout: 5.0, write_timeout: 5.0 }
@@ -63,10 +63,10 @@ RSpec.describe Faulty::Storage::Redis do
   end
 
   context 'when Redis has high reconnect_attempts' do
-    let(:client) { Redis.new(timeout: 1, reconnect_attempts: 3) }
+    let(:client) { Redis.new(timeout: 1, reconnect_attempts: 2) }
 
     it 'prints reconnect_attempts warning' do
-      expect { storage }.to output(/Your setting is 3/).to_stderr
+      expect { storage }.to output(/Your setting is larger/).to_stderr
     end
   end
 
@@ -82,7 +82,7 @@ RSpec.describe Faulty::Storage::Redis do
 
   context 'when ConnectionPool Redis client has high timeout' do
     let(:client) do
-      ConnectionPool.new(timeout: 1) { Redis.new(timeout: 7) }
+      ConnectionPool.new(timeout: 1) { Redis.new(timeout: 7.0) }
     end
 
     it 'prints Redis timeout warning' do

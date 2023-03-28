@@ -25,7 +25,7 @@ class Faulty
       #     circuit state. Default `faulty`.
       # @!attribute [r] key_separator
       #   @return [String] A string used to separate the parts of the Redis keys
-      #     used to store circuit state. Defaulty `:`.
+      #     used to store circuit state. Default `:`.
       # @!attribute [r] max_sample_size
       #   @return [Integer] The number of cache run entries to keep in memory
       #     for each circuit. Default `100`.
@@ -122,7 +122,7 @@ class Faulty
       def entry(circuit, time, success, status)
         key = entries_key(circuit.name)
         result = pipe do |r|
-          r.sadd(list_key, circuit.name)
+          r.call([:sadd, list_key, circuit.name])
           r.expire(list_key, options.circuit_ttl + options.list_granularity) if options.circuit_ttl
           r.lpush(key, "#{time}#{ENTRY_SEPARATOR}#{success ? 1 : 0}")
           r.ltrim(key, 0, options.max_sample_size - 1)
@@ -425,11 +425,16 @@ class Faulty
       end
 
       def check_redis_options!
-        ropts = redis { |r| r.instance_variable_get(:@client).options }
+        gte5 = ::Redis::VERSION.to_f >= 5
+        method = gte5 ? :config : :options
+        ropts = redis do |r|
+          r.instance_variable_get(:@client).public_send(method)
+        end
 
         bad_timeouts = {}
         %i[connect_timeout read_timeout write_timeout].each do |time_opt|
-          bad_timeouts[time_opt] = ropts[time_opt] if ropts[time_opt] > 2
+          value = gte5 ? ropts.public_send(time_opt) : ropts[time_opt]
+          bad_timeouts[time_opt] = value if value > 2
         end
 
         unless bad_timeouts.empty?
@@ -440,10 +445,11 @@ class Faulty
           MSG
         end
 
-        if ropts[:reconnect_attempts] > 1
+        gt1_retry = gte5 ? ropts.retry_connecting?(1, nil) : ropts[:reconnect_attempts] > 1
+        if gt1_retry
           warn <<~MSG
             Faulty recommends setting Redis reconnect_attempts to <= 1 to
-            prevent cascading failures. Your setting is #{ropts[:reconnect_attempts]}
+            prevent cascading failures. Your setting is larger.
           MSG
         end
       end
