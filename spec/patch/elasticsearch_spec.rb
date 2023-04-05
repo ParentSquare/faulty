@@ -3,6 +3,7 @@
 RSpec.describe Faulty::Patch::Elasticsearch do
   let(:faulty) { Faulty.new(listeners: []) }
 
+  let(:patched_module) { Faulty::Patch::Elasticsearch::PATCHED_MODULE }
   let(:good_url) { ENV.fetch('ELASTICSEARCH_URL', nil) }
   let(:bad_url) { 'localhost:9876' }
   let(:patched_good_client) { build_client(url: good_url, faulty: { instance: faulty }) }
@@ -14,13 +15,13 @@ RSpec.describe Faulty::Patch::Elasticsearch do
   end
 
   def build_client(**options)
-    Elasticsearch::Client.new(options)
+    patched_module::Client.new(options)
   end
 
   it 'captures patched transport error' do
     expect { patched_bad_client.perform_request('GET', '_cluster/state') }
       .to raise_error do |error|
-        expect(error).to be_a(Elasticsearch::Transport::Transport::Error)
+        expect(error).to be_a(patched_module::Transport::Transport::Error)
         expect(error.class).to eq(Faulty::Patch::Elasticsearch::Error::CircuitFailureError)
         expect(error).to be_a(Faulty::CircuitErrorBase)
         expect(error.cause).to be_a(Faraday::ConnectionFailed)
@@ -56,12 +57,16 @@ RSpec.describe Faulty::Patch::Elasticsearch do
   end
 
   it 'raises case-specific Elasticsearch errors' do
+    # Force the client validation request
+    patched_good_client.perform_request('GET', '/')
+    faulty.circuit('elasticsearch').reset!
+
     expect { patched_good_client.perform_request('PUT', '') }
       .to raise_error do |error|
-        expect(error).to be_a(Elasticsearch::Transport::Transport::Errors::MethodNotAllowed)
+        expect(error).to be_a(patched_module::Transport::Transport::Errors::MethodNotAllowed)
         expect(error.class).to eq(Faulty::Patch::Elasticsearch::Errors::MethodNotAllowed::CircuitFailureError)
         expect(error).to be_a(Faulty::CircuitErrorBase)
-        expect(error.cause.class).to eq(Elasticsearch::Transport::Transport::Errors::MethodNotAllowed)
+        expect(error.cause.class).to eq(patched_module::Transport::Transport::Errors::MethodNotAllowed)
       end
     expect(faulty.circuit('elasticsearch').status.failure_rate).to eq(1)
   end
@@ -69,7 +74,7 @@ RSpec.describe Faulty::Patch::Elasticsearch do
   it 'ignores 404 errors' do
     expect { patched_good_client.perform_request('GET', 'not_an_index') }
       .to raise_error do |error|
-        expect(error.class).to eq(Elasticsearch::Transport::Transport::Errors::NotFound)
+        expect(error.class).to eq(patched_module::Transport::Transport::Errors::NotFound)
       end
     expect(faulty.circuit('elasticsearch').status.failure_rate).to eq(0)
   end
