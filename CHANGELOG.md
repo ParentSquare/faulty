@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]
 -------------------
 
+[0.10.0] - 2023-04-05
+---------------------
+
+### Added
+
+* Support the opensearch-ruby gem #65 justinhoward
+
+### Changed
+
+* Split CI tasks into their own jobs #64 justinhoward
+
 [0.9.0] - 2022-08-18
 ---------------------
 
@@ -289,7 +300,8 @@ of AutoWire.
 
 Initial public release
 
-[Unreleased]: https://github.com/ParentSquare/faulty/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/ParentSquare/faulty/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/ParentSquare/faulty/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/ParentSquare/faulty/compare/v0.8.7...v0.9.0
 [0.8.7]: https://github.com/ParentSquare/faulty/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/ParentSquare/faulty/compare/v0.8.5...v0.8.6
