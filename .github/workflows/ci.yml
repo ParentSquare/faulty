@@ -12,37 +12,49 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ['2.5', '2.6', '2.7', '3.0', jruby-head, truffleruby-head]
-        bundler: [default]
+        ruby: ['2.4', '2.5', '2.6', '2.7', '3.0', jruby-head, truffleruby-head]
         redis: ['4']
+        search: [['opensearch-ruby:2.1.0', 'opensearchproject/opensearch:2.2.1']]
         include:
+          # Redis 3
           - ruby: '2.7'
-            bundler: 'default'
             redis: '3'
+            search: ['opensearch-ruby:2.1.0', 'opensearchproject/opensearch:2.2.1']
+          # Opensearch 1.0
+          - ruby: '2.7'
+            redis: '4'
+            search: ['opensearch-ruby:1.0.1', 'opensearchproject/opensearch:1.0.1']
+          # Ruby 2.3 & Elasticsearch 7.13
           - ruby: '2.3'
-            bundler: '1'
             redis: '4'
-          - ruby: '2.4'
-            bundler: '1'
-            redis: '4'
+            search: ['elasticsearch:7.5.0', 'elasticsearch:7.13.4']
     services:
       redis:
         image: redis
         ports:
           - 6379:6379
-      elasticsearch:
-        image: elasticsearch:7.13.4
+      search:
+        image: ${{ matrix.search[1] }}
         ports:
           - 9200:9200
-        options: -e="discovery.type=single-node" --health-cmd="curl http://localhost:9200/_cluster/health" --health-interval=3s --health-timeout=5s --health-retries=20
+        env:
+          discovery.type: single-node
+          plugins.security.disabled: ${{ contains(matrix.search[1], 'opensearch') && 'true' || '' }}
+        options: >-
+          --health-cmd="curl http://localhost:9200/_cluster/health"
+          --health-interval=3s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      REDIS_VERSION: ${{ matrix.redis }}
+      SEARCH_GEM: ${{ matrix.search[0] }}
+
     steps:
       - uses: actions/checkout@v3
       - uses: ruby/setup-ruby@v1
-        env:
-          REDIS_VERSION: ${{ matrix.redis }}
         with:
           ruby-version: ${{ matrix.ruby }}
-          bundler: ${{ matrix.bundler }}
           bundler-cache: true
       - name: start MySQL
         run: sudo /etc/init.d/mysql start

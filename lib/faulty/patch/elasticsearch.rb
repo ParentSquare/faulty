@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'elasticsearch'
-
 class Faulty
   module Patch
     # Patch Elasticsearch to run requests in a circuit
@@ -40,15 +38,23 @@ class Faulty
       module SnifferTimeoutError; end
       module ServerError; end
 
+      PATCHED_MODULE = if Gem.loaded_specs['opensearch-ruby']
+        require 'opensearch'
+        ::OpenSearch
+      else
+        require 'elasticsearch'
+        ::Elasticsearch
+      end
+
       # We will freeze this after adding the dynamic error classes
       MAPPED_ERRORS = { # rubocop:disable Style/MutableConstant
-        ::Elasticsearch::Transport::Transport::Error => Error,
-        ::Elasticsearch::Transport::Transport::SnifferTimeoutError => SnifferTimeoutError,
-        ::Elasticsearch::Transport::Transport::ServerError => ServerError
+        PATCHED_MODULE::Transport::Transport::Error => Error,
+        PATCHED_MODULE::Transport::Transport::SnifferTimeoutError => SnifferTimeoutError,
+        PATCHED_MODULE::Transport::Transport::ServerError => ServerError
       }
 
       module Errors
-        ::Elasticsearch::Transport::Transport::ERRORS.each do |_code, klass|
+        PATCHED_MODULE::Transport::Transport::ERRORS.each do |_code, klass|
           MAPPED_ERRORS[klass] = const_set(klass.name.split('::').last, Module.new)
         end
       end
@@ -66,14 +72,14 @@ class Faulty
       def initialize(arguments = {}, &block)
         super
 
-        errors = [::Elasticsearch::Transport::Transport::Error]
+        errors = [PATCHED_MODULE::Transport::Transport::Error]
         errors.concat(@transport.host_unreachable_exceptions)
 
         @faulty_circuit = Patch.circuit_from_hash(
           'elasticsearch',
           arguments[:faulty],
           errors: errors,
-          exclude: ::Elasticsearch::Transport::Transport::Errors::NotFound,
+          exclude: PATCHED_MODULE::Transport::Transport::Errors::NotFound,
           patched_error_mapper: ERROR_MAPPER
         )
       end
@@ -86,10 +92,20 @@ class Faulty
   end
 end
 
-module Elasticsearch
-  module Transport
-    class Client
-      prepend(Faulty::Patch::Elasticsearch)
+if Gem.loaded_specs['opensearch-ruby']
+  module OpenSearch
+    module Transport
+      class Client
+        prepend(Faulty::Patch::Elasticsearch)
+      end
+    end
+  end
+else
+  module Elasticsearch
+    module Transport
+      class Client
+        prepend(Faulty::Patch::Elasticsearch)
+      end
     end
   end
 end
