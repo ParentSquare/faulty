@@ -24,6 +24,11 @@ jobs:
           - ruby: '2.7'
             redis: '4'
             search: ['opensearch-ruby:1.0.1', 'opensearchproject/opensearch:1.0.1']
+          # Redis 5
+          # Will add support after fixing patch
+          # - ruby: '2.7'
+          #   redis: '5'
+          #   search: [['opensearch-ruby:2.1.0', 'opensearchproject/opensearch:2.2.1']]
           # Ruby 2.3 & Elasticsearch 7.13
           - ruby: '2.3'
             redis: '4'
