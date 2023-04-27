@@ -4,25 +4,60 @@ RSpec.describe Faulty::Patch::Redis do
   let(:faulty) { Faulty.new(listeners: []) }
 
   let(:bad_url) { 'redis://127.0.0.1:9876' }
-  let(:bad_redis) { ::Redis.new(url: bad_url, faulty: { instance: faulty }) }
-  let(:good_redis) { ::Redis.new(faulty: { instance: faulty }) }
-  let(:bad_unpatched_redis) { ::Redis.new(url: bad_url) }
+  let(:bad_redis) { ::Redis.new(opts(url: bad_url, faulty: { instance: faulty })) }
+  let(:good_redis) { ::Redis.new(opts(faulty: { instance: faulty })) }
+  let(:bad_unpatched_redis) { ::Redis.new(opts(url: bad_url)) }
   let(:bad_redis_unpatched_errors) do
-    ::Redis.new(url: bad_url, faulty: { instance: faulty, patch_errors: false })
+    ::Redis.new(opts(url: bad_url, faulty: { instance: faulty, patch_errors: false }))
+  end
+  let(:timeout) { 1 }
+
+  def opts(faulty: nil, **opts)
+    if Redis::VERSION.to_f >= 5
+      { custom: { faulty: faulty }, timeout: timeout, **opts }
+    else
+      { faulty: faulty, timeout: timeout, **opts }
+    end
+  end
+
+  def connect(redis)
+    if Redis::VERSION.to_f >= 5
+      redis.connect
+    else
+      redis.client.connect
+    end
+  end
+
+  def faulty_cause(error)
+    if Redis::VERSION.to_f >= 5
+      error.cause.cause
+    else
+      error.cause
+    end
   end
 
   it 'captures connection error' do
-    expect { bad_redis.client.connect }.to raise_error(Faulty::Patch::Redis::CircuitError)
+    expect { connect(bad_redis) }.to raise_error do |error|
+      expect(error).to be_a(::Redis::BaseConnectionError)
+      if Redis::VERSION.to_f >= 5
+        expect(faulty_cause(error)).to be_a(Faulty::Patch::Redis::CircuitError)
+      else
+        expect(error).to be_a(Faulty::Patch::Redis::CircuitError)
+      end
+    end
     expect(faulty.circuit('redis').status.failure_rate).to eq(1)
   end
 
   it 'does not capture connection error if no circuit' do
-    expect { bad_unpatched_redis.client.connect }.to raise_error(::Redis::BaseConnectionError)
+    expect { connect(bad_unpatched_redis) }.to raise_error(::Redis::BaseConnectionError)
     expect(faulty.circuit('redis').status.failure_rate).to eq(0)
   end
 
   it 'captures connection error during command' do
-    expect { bad_redis.ping }.to raise_error(Faulty::Patch::Redis::CircuitError)
+    expect { bad_redis.ping }.to raise_error do |error|
+      expect(error).to be_a(::Redis::BaseConnectionError)
+      expect(faulty_cause(error)).to be_a(Faulty::Patch::Redis::CircuitError)
+    end
     expect(faulty.circuit('redis').status.failure_rate).to eq(1)
   end
 
@@ -54,6 +89,7 @@ RSpec.describe Faulty::Patch::Redis do
       sleep(0.5)
       thread
     end
+    let(:timeout) { 3 }
 
     before do
       good_redis
@@ -71,9 +107,9 @@ RSpec.describe Faulty::Patch::Redis do
 
     it 'captures busy command error' do
       expect { good_redis.ping }.to raise_error do |error|
-        expect(error).to be_a(Faulty::Patch::Redis::CircuitError)
-        expect(error.cause).to be_a(Faulty::Patch::Redis::BusyError)
-        expect(error.cause.message).to eq(
+        expect(error).to be_a(::Redis::BaseConnectionError)
+        expect(faulty_cause(error)).to be_a(Faulty::Patch::Redis::BusyError)
+        expect(faulty_cause(error).message).to eq(
           'BUSY Redis is busy running a script. You can only call SCRIPT KILL or SHUTDOWN NOSAVE.'
         )
       end

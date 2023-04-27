@@ -24,12 +24,15 @@ jobs:
           - ruby: '2.7'
             redis: '4'
             search: ['opensearch-ruby:1.0.1', 'opensearchproject/opensearch:1.0.1']
+          # Elasticsearch 7.13
+          - ruby: '2.7'
+            redis: '4'
+            search: ['elasticsearch:7.13.3', 'elasticsearch:7.13.4']
           # Redis 5
-          # Will add support after fixing patch
-          # - ruby: '2.7'
-          #   redis: '5'
-          #   search: [['opensearch-ruby:2.1.0', 'opensearchproject/opensearch:2.2.1']]
-          # Ruby 2.3 & Elasticsearch 7.13
+          - ruby: '2.7'
+            redis: '5'
+            search: ['opensearch-ruby:2.1.0', 'opensearchproject/opensearch:2.2.1']
+          # Ruby 2.3 & Elasticsearch 7.5
           - ruby: '2.3'
             redis: '4'
             search: ['elasticsearch:7.5.0', 'elasticsearch:7.13.4']
@@ -68,7 +71,7 @@ jobs:
           MYSQL_USER: root
           MYSQL_PASSWORD: root
       - uses: codecov/codecov-action@v3
-        if: matrix.ruby == '2.7' && matrix.redis == '4'
+        if: matrix.ruby == '2.7'
         with:
           files: coverage/coverage.xml
 

@@ -985,11 +985,12 @@ Mysql2::Client.new(host: '127.0.0.1', faulty: { instance: 'mysql2' })
 protects a Redis client with an internal circuit. Pass a `:faulty` key along
 with your connection options to enable the circuit breaker.
 
-The Redis patch supports the Redis gem versions 3 and 4.
+The Redis patch supports the Redis gem versions 3 and up
 
 ```ruby
 require 'faulty/patch/redis'
 
+# For Redis <= 4, pass faulty into the top-level connection options
 redis = Redis.new(url: 'redis://localhost:6379', faulty: {
   # The name for the redis circuit
   name: 'redis'
@@ -1004,6 +1005,12 @@ redis = Redis.new(url: 'redis://localhost:6379', faulty: {
   # will raise its default errors
   patch_errors: true
 })
+
+# Or for Redis 5+, pass faulty into the custom connection options
+redis = Redis.new(url: 'redis://localhost:6379', custom: { faulty: {
+  # ...
+}})
+
 redis.connect # raises Faulty::CircuitError if connection fails
 
 # If the faulty key is not given, no circuit is used
