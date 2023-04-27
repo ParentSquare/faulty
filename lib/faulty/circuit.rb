@@ -403,7 +403,7 @@ class Faulty
       cached_value
     end
 
-    # Excecute a run
+    # Execute a run
     #
     # @param cached_value The cached value if one is available
     # @param cache_key [String, nil] The cache key if one is given
