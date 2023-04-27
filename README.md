@@ -4,7 +4,7 @@
 [![CI](https://github.com/ParentSquare/faulty/workflows/CI/badge.svg)](https://github.com/ParentSquare/faulty/actions?query=workflow%3ACI+branch%3Amaster)
 [![Code Quality](https://app.codacy.com/project/badge/Grade/16bb1df1569a4ddba893a866673dac2a)](https://www.codacy.com/gh/ParentSquare/faulty/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ParentSquare/faulty&amp;utm_campaign=Badge_Grade)
 [![Code Coverage](https://codecov.io/gh/ParentSquare/faulty/branch/master/graph/badge.svg?token=1NDT4FW1YJ)](https://codecov.io/gh/ParentSquare/faulty)
-[![Inline docs](http://inch-ci.org/github/ParentSquare/faulty.svg?branch=master)](http://inch-ci.org/github/ParentSquare/faulty)
+[![Online docs](https://img.shields.io/badge/docs-✓-green.svg)](https://www.rubydoc.info/github/ParentSquare/faulty)
 
 Fault-tolerance tools for ruby based on [circuit-breakers][martin fowler].
 
