@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]
 -------------------
 
+[0.11.0] - 2023-04-26
+---------------------
+
+### Added
+
+* Add storage support for redis gem v5 #63 justinhoward
+* Add Redis 5 support for patch #67 justinhoward
+
 [0.10.0] - 2023-04-05
 ---------------------
 
@@ -300,7 +308,8 @@ of AutoWire.
 
 Initial public release
 
-[Unreleased]: https://github.com/ParentSquare/faulty/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/ParentSquare/faulty/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/ParentSquare/faulty/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/ParentSquare/faulty/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/ParentSquare/faulty/compare/v0.8.7...v0.9.0
 [0.8.7]: https://github.com/ParentSquare/faulty/compare/v0.8.6...v0.8.7

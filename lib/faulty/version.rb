@@ -3,6 +3,6 @@
 class Faulty
   # The current Faulty version
   def self.version
-    Gem::Version.new('0.10.0')
+    Gem::Version.new('0.11.0')
   end
 end
