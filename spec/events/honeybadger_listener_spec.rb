@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'honeybadger/ruby'
-
 RSpec.describe Faulty::Events::HoneybadgerListener do
   let(:circuit) { Faulty::Circuit.new('test_circuit') }
   let(:error) { StandardError.new('fail') }
@@ -11,6 +9,9 @@ RSpec.describe Faulty::Events::HoneybadgerListener do
   end
 
   before do
+    skip 'Honeybadger only supports >= Ruby 2.4' unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.4')
+    require 'honeybadger/ruby'
+
     Honeybadger.configure do |c|
       c.backend = 'test'
       c.api_key = 'test'
