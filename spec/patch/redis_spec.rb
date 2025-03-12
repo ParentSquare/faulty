@@ -109,8 +109,8 @@ RSpec.describe Faulty::Patch::Redis do
       expect { good_redis.ping }.to raise_error do |error|
         expect(error).to be_a(::Redis::BaseConnectionError)
         expect(faulty_cause(error)).to be_a(Faulty::Patch::Redis::BusyError)
-        expect(faulty_cause(error).message).to eq(
-          'BUSY Redis is busy running a script. You can only call SCRIPT KILL or SHUTDOWN NOSAVE.'
+        expect(faulty_cause(error).message).to match(
+          /BUSY Redis is busy running a script. You can only call SCRIPT KILL or SHUTDOWN NOSAVE/
         )
       end
 

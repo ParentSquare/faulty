@@ -19,6 +19,10 @@ RSpec.describe Faulty::Events::LogListener do
     io.read.strip
   end
 
+  before do
+    require 'logger'
+  end
+
   context 'when Rails is available' do
     before do
       l = logger
