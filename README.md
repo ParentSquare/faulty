@@ -146,7 +146,7 @@ Faulty.init do |config|
   config.storage = Faulty::Storage::Redis.new
 
   config.listeners << Faulty::Events::CallbackListener.new do |events|
-    events.circuit_open do |payload|
+    events.circuit_opened do |payload|
       puts 'Circuit was opened'
     end
   end
