@@ -90,12 +90,35 @@ class Faulty
       # may be called more than once. If so, this method should return true
       # only once, when the circuit transitions from open to closed.
       #
+      # The backend should reset the reserved_at value to empty when closing
+      # the circuit.
+      #
       # If the backend does not support locking or atomic operations, then
       # it may always return true, but that could result in duplicate close
       # notifications.
       #
       # @return [Boolean] True if the circuit transitioned from open to closed
       def close(circuit)
+        raise NotImplementedError
+      end
+
+      # Reserve an exclusive run for this circuit
+      #
+      # This is used when the circuit is half-open and the test run is being
+      # attempted. We need to make sure only a single run is allowed.
+      #
+      # The backend should store reserved_at and use it to serve future status
+      # requests. When setting reserved_at, the backend should atomically
+      # compare any existing value using previous_reserved_at. This ensures
+      # that mutltiple parallel processes can't reserve the circuit.
+      #
+      # The backend should return true if the reservation was successful, and
+      # false if it was not.
+      #
+      # If the backend does not support locking or atomic operations, then
+      # it may always return true, but will result in duplicate half-open test
+      # runs.
+      def reserve(circuit, reserved_at, previous_reserved_at)
         raise NotImplementedError
       end
 

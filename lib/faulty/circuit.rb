@@ -308,9 +308,11 @@ class Faulty
       return cached_value if !cached_value.nil? && !cache_should_refresh?(cache)
 
       current_status = status
-      return run_skipped(cached_value) unless current_status.can_run?
-
-      run_exec(current_status, cached_value, cache, &block)
+      if current_status.can_run? && reserve(current_status)
+        run_exec(current_status, cached_value, cache, &block)
+      else
+        run_skipped(cached_value) unless current_status.can_run?
+      end
     end
 
     # Force the circuit to stay open until unlocked
@@ -401,6 +403,16 @@ class Faulty
       raise map_error(:OpenCircuitError) if cached_value.nil?
 
       cached_value
+    end
+
+    # Reserves execution for this circuit when it is half-open
+    #
+    # This prevents concurrent evaluation from allowing multiple simultaneous
+    # runs for half-open circuits.
+    def reserve(status)
+      return true unless status.half_open?
+
+      storage.reserve(self, Faulty.current_time, status.reserved_at)
     end
 
     # Execute a run

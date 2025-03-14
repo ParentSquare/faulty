@@ -34,10 +34,12 @@ class Faulty
     :state,
     :lock,
     :opened_at,
+    :reserved_at,
     :failure_rate,
     :sample_size,
     :options,
-    :stub
+    :stub,
+    :current_time
   )
 
   class Status
@@ -66,7 +68,8 @@ class Faulty
     #   sample_size
     # @return [Status]
     def self.from_entries(entries, **hash)
-      window_start = Faulty.current_time - hash[:options].evaluation_window
+      current_time = Faulty.current_time
+      window_start = current_time - hash[:options].evaluation_window
       size = entries.size
       i = 0
       failures = 0
@@ -84,7 +87,8 @@ class Faulty
 
       new(hash.merge(
         sample_size: sample_size,
-        failure_rate: sample_size.zero? ? 0.0 : failures.to_f / sample_size
+        failure_rate: sample_size.zero? ? 0.0 : failures.to_f / sample_size,
+        current_time: current_time
       ))
     end
 
@@ -94,7 +98,7 @@ class Faulty
     #
     # @return [Boolean] True if open
     def open?
-      state == :open && opened_at + options.cool_down > Faulty.current_time
+      state == :open && opened_at + options.cool_down > current_time
     end
 
     # Whether the circuit is closed
@@ -112,7 +116,7 @@ class Faulty
     #
     # @return [Boolean] True if half-open
     def half_open?
-      state == :open && opened_at + options.cool_down <= Faulty.current_time
+      state == :open && opened_at + options.cool_down <= current_time
     end
 
     # Whether the circuit is locked open
@@ -129,6 +133,12 @@ class Faulty
       lock == :closed
     end
 
+    def reserved?
+      return false unless reserved_at
+
+      state == :open && reserved_at + options.cool_down >= current_time
+    end
+
     # Whether the circuit can be run
     #
     # Takes the circuit state, locks and cooldown into account
@@ -136,6 +146,7 @@ class Faulty
     # @return [Boolean] True if the circuit can be run
     def can_run?
       return false if locked_open?
+      return false if reserved?
 
       closed? || locked_closed? || half_open?
     end
@@ -166,7 +177,8 @@ class Faulty
         state: :closed,
         failure_rate: 0.0,
         sample_size: 0,
-        stub: false
+        stub: false,
+        current_time: Faulty.current_time
       }
     end
   end
