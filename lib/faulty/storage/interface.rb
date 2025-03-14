@@ -35,7 +35,8 @@ class Faulty
       # long as it can implement the other read methods.
       #
       # @param circuit [Circuit] The circuit that ran
-      # @param time [Integer] The unix timestamp for the run
+      # @param time [Float] The unix timestamp for the run, from
+      #   {Faulty.current_time}
       # @param success [Boolean] True if the run succeeded
       # @param status [Status, nil] The previous status. If given, this method must
       #   return an updated status object from the new entry data.
@@ -58,7 +59,8 @@ class Faulty
       # current time.
       #
       # @param circuit [Circuit] The circuit to open
-      # @param opened_at [Integer] The timestmp the circuit was opened at
+      # @param opened_at [Float] The timestamp the circuit was opened at,
+      #   from {Faulty.current_time}
       # @return [Boolean] True if the circuit transitioned from closed to open
       def open(circuit, opened_at)
         raise NotImplementedError
@@ -75,10 +77,35 @@ class Faulty
       # it may always return true, but that could result in duplicate reopen
       # notifications.
       #
+      # The backend MUST NOT clear `reserved_at` here.
+      #
+      # Preserving the prior cycle's `reserved_at` is load-bearing for
+      # half-open exclusivity. If a late-arriving caller read status while
+      # `reserved_at` was still nil (before the winning process reserved),
+      # its subsequent `reserve(circuit, T, nil)` CAS must fail. Clearing
+      # `reserved_at` in `reopen` would let that stale CAS incorrectly
+      # succeed and produce a duplicate half-open run.
+      #
+      # Beyond exclusivity, the prior reservation expires naturally at
+      # `reserved_at + cool_down`, aligned with the start of the next
+      # half-open window (since `reserved_at <= new_opened_at`). An
+      # explicit reset would be redundant with the cool-down-aligned expiry
+      # that already handles crash recovery.
+      #
+      # This invariant assumes the reservation TTL equals `cool_down`. If
+      # a separate `reservation_ttl` is ever introduced, this method must
+      # be revisited and may need to clear `reserved_at` explicitly.
+      #
       # @param circuit [Circuit] The circuit to reopen
-      # @param opened_at [Integer] The timestmp the circuit was opened at
-      # @param previous_opened_at [Integer] The last known value of opened_at.
-      #   Can be used to comare-and-set.
+      # @param opened_at [Float] The timestamp the circuit was opened at,
+      #   from {Faulty.current_time}
+      # @param previous_opened_at [Float] The last known value of opened_at.
+      #   Can be used to compare-and-set. Always non-nil — `Circuit#failure!`
+      #   only enters the reopen branch when `status.half_open?` is true,
+      #   which requires non-nil `opened_at`. Unlike `previous_reserved_at`
+      #   on {#reserve}, there is no legitimate "no prior value" call path
+      #   to `reopen`, so backends may treat this parameter as required and
+      #   are not expected to handle `nil`.
       # @return [Boolean] True if the opened_at time was updated
       def reopen(circuit, opened_at, previous_opened_at)
         raise NotImplementedError
@@ -90,12 +117,45 @@ class Faulty
       # may be called more than once. If so, this method should return true
       # only once, when the circuit transitions from open to closed.
       #
+      # The backend should reset the reserved_at value to empty when closing
+      # the circuit.
+      #
       # If the backend does not support locking or atomic operations, then
       # it may always return true, but that could result in duplicate close
       # notifications.
       #
       # @return [Boolean] True if the circuit transitioned from open to closed
       def close(circuit)
+        raise NotImplementedError
+      end
+
+      # Reserve an exclusive run for this circuit
+      #
+      # This is used when the circuit is half-open and the test run is being
+      # attempted. We need to make sure only a single run is allowed.
+      #
+      # The backend should store reserved_at and use it to serve future status
+      # requests. When setting reserved_at, the backend should atomically
+      # compare any existing value using previous_reserved_at. This ensures
+      # that mutltiple parallel processes can't reserve the circuit.
+      #
+      # The return value is the caller's signal to proceed with the half-open
+      # test run, not a strict report of whether atomic acquisition succeeded.
+      # Atomic backends should return `true` only when the CAS against
+      # `previous_reserved_at` succeeds. Non-atomic backends, no-op backends
+      # ({Null}), or wrappers that fail open ({FaultTolerantProxy}) may always
+      # return `true`; the caller will proceed at the cost of allowing
+      # duplicate half-open test runs.
+      #
+      # @param circuit [Circuit] The circuit to reserve
+      # @param reserved_at [Float] The timestamp of this reservation, from
+      #   {Faulty.current_time}
+      # @param previous_reserved_at [Float, nil] The last known value of
+      #   reserved_at, or nil for the first reservation in a new open cycle.
+      #   Can be used to compare-and-set.
+      # @return [Boolean] True if the caller may proceed with the half-open
+      #   test run; false if another caller already holds the reservation.
+      def reserve(circuit, reserved_at, previous_reserved_at)
         raise NotImplementedError
       end
 

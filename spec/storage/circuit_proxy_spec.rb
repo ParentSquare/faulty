@@ -37,4 +37,12 @@ RSpec.describe Faulty::Storage::CircuitProxy do
     proxy = described_class.new(backend, notifier: notifier)
     proxy.entry(circuit, Faulty.current_time, true, nil)
   end
+
+  it 'delegates #reserve to the wrapped storage' do
+    backend = Faulty::Storage::Memory.new
+    proxy = described_class.new(backend, notifier: notifier)
+    allow(backend).to receive(:reserve).with(circuit, 100.0, nil).and_return(true)
+    expect(proxy.reserve(circuit, 100.0, nil)).to be(true)
+    expect(backend).to have_received(:reserve).with(circuit, 100.0, nil)
+  end
 end

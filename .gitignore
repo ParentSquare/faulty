@@ -9,3 +9,5 @@
 /.yardoc/
 
 .byebug_history
+
+/.vscode/

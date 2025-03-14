@@ -115,6 +115,18 @@ RSpec.describe Faulty::Storage::FaultTolerantProxy do
     it_behaves_like 'safely wrapped action'
   end
 
+  # Unlike #open/#reopen/#close which return false on storage error,
+  # #reserve returns true to fail open — a degraded backend allows the
+  # half-open test run to proceed, trading thundering-herd protection for
+  # availability.
+  describe '#reserve' do
+    let(:action) { :reserve }
+    let(:args) { [circuit, Faulty.current_time, nil] }
+    let(:retval) { true }
+
+    it_behaves_like 'safely wrapped action'
+  end
+
   describe '#lock' do
     let(:action) { :lock }
     let(:args) { [circuit, :open] }

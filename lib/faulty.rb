@@ -125,9 +125,11 @@ class Faulty
     # The current time
     #
     # Used by Faulty wherever the current time is needed. Can be overridden
-    # for testing
+    # for testing. Returned as a Float (Unix epoch seconds with sub-second
+    # precision) so it can be stored in numeric Redis fields and compared
+    # against other timestamps without conversion.
     #
-    # @return [Time] The current time
+    # @return [Float] The current time as a Unix timestamp
     def current_time
       Time.now.to_f
     end

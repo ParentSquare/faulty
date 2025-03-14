@@ -174,8 +174,22 @@ class Faulty
         result = watch_exec(key, ['open']) do |m|
           m.set(key, 'closed', ex: ex)
           m.del(entries_key(circuit.name))
+          m.del(reserved_at_key(circuit.name))
         end
 
+        result && result[0] == 'OK'
+      end
+
+      # Reserve an exclusive run for this circuit
+      #
+      # @see Interface#reserve
+      # @param (see Interface#reserve)
+      # @return (see Interface#reserve)
+      def reserve(circuit, reserved_at, previous_reserved_at)
+        key = reserved_at_key(circuit.name)
+        result = watch_exec(key, [previous_reserved_at&.to_s]) do |m|
+          m.set(key, reserved_at, ex: options.circuit_ttl)
+        end
         result && result[0] == 'OK'
       end
 
@@ -210,6 +224,7 @@ class Faulty
           r.del(
             entries_key(name),
             opened_at_key(name),
+            reserved_at_key(name),
             lock_key(name),
             options_key(name)
           )
@@ -228,20 +243,11 @@ class Faulty
           futures[:state] = r.get(state_key(circuit.name))
           futures[:lock] = r.get(lock_key(circuit.name))
           futures[:opened_at] = r.get(opened_at_key(circuit.name))
+          futures[:reserved_at] = r.get(reserved_at_key(circuit.name))
           futures[:entries] = r.lrange(entries_key(circuit.name), 0, -1)
         end
 
-        state = futures[:state].value&.to_sym || :closed
-        opened_at = futures[:opened_at].value ? Float(futures[:opened_at].value) : nil
-        opened_at = Faulty.current_time - options.circuit_ttl if state == :open && opened_at.nil?
-
-        Faulty::Status.from_entries(
-          map_entries(futures[:entries].value),
-          state: state,
-          lock: futures[:lock].value&.to_sym,
-          opened_at: opened_at,
-          options: circuit.options
-        )
+        build_status(circuit, futures)
       end
 
       # Get the circuit history up to `max_sample_size`
@@ -285,6 +291,26 @@ class Faulty
 
       private
 
+      # Build a {Status} from the redis values fetched by {#status}
+      def build_status(circuit, futures)
+        state = futures[:state].value&.to_sym || :closed
+        opened_at = parse_float(futures[:opened_at].value)
+        opened_at = Faulty.current_time - options.circuit_ttl if state == :open && opened_at.nil?
+
+        Faulty::Status.from_entries(
+          map_entries(futures[:entries].value),
+          state: state,
+          lock: futures[:lock].value&.to_sym,
+          opened_at: opened_at,
+          reserved_at: parse_float(futures[:reserved_at].value),
+          options: circuit.options
+        )
+      end
+
+      def parse_float(value)
+        value ? Float(value) : nil
+      end
+
       # Generate a key from its parts
       #
       # @return [String] The key
@@ -319,6 +345,11 @@ class Faulty
       # @return [String] The key for circuit opened_at
       def opened_at_key(circuit_name)
         ckey(circuit_name, 'opened_at')
+      end
+
+      # @return [String] The key for circuit reserved_at
+      def reserved_at_key(circuit_name)
+        ckey(circuit_name, 'reserved_at')
       end
 
       # Get the current key to add circuit names to

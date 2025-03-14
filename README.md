@@ -1226,6 +1226,23 @@ state, Faulty allows a single execution of the block as a test run. If the test
 run succeeds, the circuit is fully closed and the circuit state is reset. If the
 test run fails, the circuit is opened and the cool-down is reset.
 
+When the storage backend supports atomic operations (the default `Memory` and
+`Redis` backends both do), the half-open test run is reserved exclusively. Other
+processes or threads that observe the half-open state while a test run is in
+progress will be skipped with `Faulty::OpenCircuitError`, just as if the circuit
+were still open. The reservation expires after `cool_down` so that a crashed
+process can't permanently wedge the circuit.
+
+This means `cool_down` does double duty: it gates how long the circuit waits
+before retrying after opening, and it bounds how long a half-open reservation
+is honored. Test runs that legitimately take longer than `cool_down` (for
+example, a slow downstream during recovery) will see their reservation expire
+mid-run, at which point another process can reserve and run the block
+concurrently. If your protected calls can run longer than `cool_down`, set
+`cool_down` to comfortably exceed the slowest expected latency for the
+protected operation, or accept that occasional duplicate half-open test runs
+are possible during slow recoveries.
+
 Each time the circuit changes state or executes the block, events are raised
 that are sent to the Faulty event notifier. The notifier should be used to track
 circuit failure rates, open circuits, etc.

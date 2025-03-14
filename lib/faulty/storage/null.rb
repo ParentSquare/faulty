@@ -46,6 +46,12 @@ class Faulty
         true
       end
 
+      # @param (see Interface#reserve)
+      # @return (see Interface#reserve)
+      def reserve(_circuit, _reserved_at, _previous_reserved_at)
+        true
+      end
+
       # @param (see Interface#lock)
       # @return (see Interface#lock)
       def lock(_circuit, _state)

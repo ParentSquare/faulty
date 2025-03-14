@@ -52,6 +52,7 @@ class Faulty
         open
         reopen
         close
+        reserve
         lock
         unlock
         reset

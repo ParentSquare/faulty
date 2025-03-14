@@ -41,11 +41,12 @@ class Faulty
       # The internal object for storing a circuit
       #
       # @private
-      MemoryCircuit = Struct.new(:state, :runs, :opened_at, :lock, :options) do
+      MemoryCircuit = Struct.new(:state, :runs, :opened_at, :reserved_at, :lock, :options) do
         def initialize
           self.state = Concurrent::Atom.new(:closed)
           self.runs = Concurrent::MVar.new([], dup_on_deref: true)
           self.opened_at = Concurrent::Atom.new(nil)
+          self.reserved_at = Concurrent::Atom.new(nil)
           self.lock = nil
         end
 
@@ -61,6 +62,7 @@ class Faulty
               state: state.value,
               lock: lock,
               opened_at: opened_at.value,
+              reserved_at: reserved_at.value,
               options: circuit_options
             )
           end
@@ -139,7 +141,19 @@ class Faulty
       def close(circuit)
         memory = fetch(circuit)
         memory.runs.modify { |_old| [] }
-        memory.state.compare_and_set(:open, :closed)
+        closed = memory.state.compare_and_set(:open, :closed)
+        memory.reserved_at.reset(nil) if closed
+        closed
+      end
+
+      # Reserve an exclusive run for this circuit
+      #
+      # @see Interface#reserve
+      # @param (see Interface#reserve)
+      # @return (see Interface#reserve)
+      def reserve(circuit, reserved_at, previous_reserved_at)
+        memory = fetch(circuit)
+        memory.reserved_at.compare_and_set(previous_reserved_at, reserved_at)
       end
 
       # Lock a circuit open or closed

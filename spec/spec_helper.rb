@@ -25,6 +25,8 @@ require 'json'
 require 'connection_pool'
 
 begin
+  ENV['MYSQL_HOST'] ||= '127.0.0.1'
+  ENV['MYSQL_USER'] ||= 'root'
   require 'faulty/patch/mysql2'
 rescue LoadError
   # Ok if mysql2 isn't available (e.g. JRuby/TruffleRuby)

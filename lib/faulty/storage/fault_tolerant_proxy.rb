@@ -9,6 +9,19 @@ class Faulty
     #
     # If the storage backend raises a `StandardError`, it will be captured and
     # sent to the notifier.
+    #
+    # The overall design preference is to keep protected code paths running
+    # when the storage backend is degraded, even when that means losing
+    # circuit-breaker protections that the storage normally provides:
+    # `#status` returns a stub closed status (so `Circuit#run` proceeds),
+    # `#reserve` returns `true` (so half-open test runs proceed), and the
+    # write paths (`#open`, `#reopen`, `#close`, `#entry`) return `false`
+    # to safe-deny the *recorded transition* without failing the in-flight
+    # call. The trade-off is that a correlated outage of the storage
+    # backend and the upstream protected by the circuit will let the fleet
+    # converge on the upstream — but that fleet would converge anyway via
+    # the stub-closed status path, so individual write methods don't make
+    # it worse.
     class FaultTolerantProxy
       extend Forwardable
 
@@ -175,6 +188,22 @@ class Faulty
       rescue StandardError => e
         options.notifier.notify(:storage_failure, circuit: circuit, action: :status, error: e)
         stub_status(circuit)
+      end
+
+      # Safely reserve execution of a circuit
+      #
+      # Returns `true` on storage error so half-open test runs proceed when
+      # the backend is degraded. See the class-level docs for the gem's
+      # fail-open trade-off.
+      #
+      # @see Interface#reserve
+      # @param (see Interface#reserve)
+      # @return (see Interface#reserve)
+      def reserve(circuit, reserved_at, previous_reserved_at)
+        @storage.reserve(circuit, reserved_at, previous_reserved_at)
+      rescue StandardError => e
+        options.notifier.notify(:storage_failure, circuit: circuit, action: :reserve, error: e)
+        true
       end
 
       # This cache makes any storage fault tolerant, so this is always `true`
