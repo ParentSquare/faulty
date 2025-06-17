@@ -36,8 +36,7 @@ end
 
 if ENV['SEARCH_GEM']
   name, version = ENV['SEARCH_GEM'].split(':')
-  name = 'opensearch-ruby' if name == 'opensearch'
   gem name, "~> #{version}"
 else
-  gem 'opensearch-ruby', '~> 2.1'
+  gem 'opensearch-ruby'
 end

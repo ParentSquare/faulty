@@ -43,7 +43,12 @@ class Faulty
         ::OpenSearch
       else
         require 'elasticsearch'
-        ::Elasticsearch
+        if Gem.loaded_specs['elastic-transport']
+          require 'elastic-transport'
+          ::Elastic
+        else
+          ::Elasticsearch
+        end
       end
 
       # We will freeze this after adding the dynamic error classes
@@ -94,6 +99,14 @@ end
 
 if Gem.loaded_specs['opensearch-ruby']
   module OpenSearch
+    module Transport
+      class Client
+        prepend(Faulty::Patch::Elasticsearch)
+      end
+    end
+  end
+elsif Gem.loaded_specs['elastic-transport']
+  module Elastic
     module Transport
       class Client
         prepend(Faulty::Patch::Elasticsearch)
