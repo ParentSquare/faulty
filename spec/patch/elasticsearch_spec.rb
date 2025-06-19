@@ -15,7 +15,11 @@ RSpec.describe Faulty::Patch::Elasticsearch do
   end
 
   def build_client(**options)
-    patched_module::Client.new(options)
+    if Gem.loaded_specs['opensearch-ruby']
+      ::OpenSearch::Client.new(options)
+    else
+      ::Elasticsearch::Client.new(options)
+    end
   end
 
   it 'captures patched transport error' do
@@ -24,7 +28,13 @@ RSpec.describe Faulty::Patch::Elasticsearch do
         expect(error).to be_a(patched_module::Transport::Transport::Error)
         expect(error.class).to eq(Faulty::Patch::Elasticsearch::Error::CircuitFailureError)
         expect(error).to be_a(Faulty::CircuitErrorBase)
-        expect(error.cause).to be_a(Faraday::ConnectionFailed)
+        expect(error.cause).to be_a(
+          if Gem.loaded_specs['elastic-transport']
+            Elastic::Transport::Transport::Error
+          else
+            Faraday::ConnectionFailed
+          end
+        )
       end
     expect(faulty.circuit('elasticsearch').status.failure_rate).to eq(1)
   end
@@ -43,7 +53,13 @@ RSpec.describe Faulty::Patch::Elasticsearch do
 
   it 'does not capture transport error for unpatched client' do
     expect { unpatched_bad_client.perform_request('GET', '_cluster/state') }
-      .to raise_error(Faraday::ConnectionFailed)
+      .to raise_error(
+        if Gem.loaded_specs['elastic-transport']
+          Elastic::Transport::Transport::Error
+        else
+          Faraday::ConnectionFailed
+        end
+      )
     expect(faulty.circuit('elasticsearch').status.failure_rate).to eq(0)
   end
 
@@ -51,7 +67,13 @@ RSpec.describe Faulty::Patch::Elasticsearch do
     expect { bad_client_unpatched_errors.perform_request('GET', '_cluster/state') }
       .to raise_error do |error|
         expect(error.class).to eq(Faulty::CircuitFailureError)
-        expect(error.cause).to be_a(Faraday::ConnectionFailed)
+        expect(error.cause).to be_a(
+          if Gem.loaded_specs['elastic-transport']
+            Elastic::Transport::Transport::Error
+          else
+            Faraday::ConnectionFailed
+          end
+        )
       end
     expect(faulty.circuit('elasticsearch').status.failure_rate).to eq(1)
   end

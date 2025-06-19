@@ -30,14 +30,21 @@ if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
   gem 'simplecov-cobertura', '~> 2.1'
 end
 
-if ENV['REDIS_VERSION']
-  gem 'redis', "~> #{ENV['REDIS_VERSION']}"
+if (redis_version = ENV.fetch('REDIS_VERSION', nil))
+  gem 'redis', "~> #{redis_version}"
 end
 
-if ENV['SEARCH_GEM']
-  name, version = ENV['SEARCH_GEM'].split(':')
-  name = 'opensearch-ruby' if name == 'opensearch'
+if redis_version
+  if ENV.fetch('REDIS_CLUSTER', nil) == 'true'
+    gem 'redis-clustering', "~> #{redis_version}"
+  end
+elsif Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.7')
+  gem 'redis-clustering' # rubocop:disable Bundler/DuplicatedGem
+end
+
+if (search_gem = ENV.fetch('SEARCH_GEM', nil))
+  name, version = search_gem.split(':')
   gem name, "~> #{version}"
 else
-  gem 'opensearch-ruby', '~> 2.1'
+  gem 'opensearch-ruby'
 end

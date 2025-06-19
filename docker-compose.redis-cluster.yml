@@ -1,0 +1,72 @@
+services:
+  redis-cluster-node-0:
+    image: docker.io/bitnami/redis-cluster:latest
+    volumes:
+      - redis-cluster_data-0:/bitnami/redis/data
+    environment:
+      - "ALLOW_EMPTY_PASSWORD=yes"
+      - "REDIS_NODES=redis-cluster-node-0 redis-cluster-node-1 redis-cluster-node-2 redis-cluster-node-3 redis-cluster-node-4 redis-cluster-node-5"
+
+  redis-cluster-node-1:
+    image: docker.io/bitnami/redis-cluster:latest
+    volumes:
+      - redis-cluster_data-1:/bitnami/redis/data
+    environment:
+      - "ALLOW_EMPTY_PASSWORD=yes"
+      - "REDIS_NODES=redis-cluster-node-0 redis-cluster-node-1 redis-cluster-node-2 redis-cluster-node-3 redis-cluster-node-4 redis-cluster-node-5"
+
+  redis-cluster-node-2:
+    image: docker.io/bitnami/redis-cluster:latest
+    volumes:
+      - redis-cluster_data-2:/bitnami/redis/data
+    environment:
+      - "ALLOW_EMPTY_PASSWORD=yes"
+      - "REDIS_NODES=redis-cluster-node-0 redis-cluster-node-1 redis-cluster-node-2 redis-cluster-node-3 redis-cluster-node-4 redis-cluster-node-5"
+
+  redis-cluster-node-3:
+    image: docker.io/bitnami/redis-cluster:latest
+    volumes:
+      - redis-cluster_data-3:/bitnami/redis/data
+    environment:
+      - "ALLOW_EMPTY_PASSWORD=yes"
+      - "REDIS_NODES=redis-cluster-node-0 redis-cluster-node-1 redis-cluster-node-2 redis-cluster-node-3 redis-cluster-node-4 redis-cluster-node-5"
+
+  redis-cluster-node-4:
+    image: docker.io/bitnami/redis-cluster:latest
+    volumes:
+      - redis-cluster_data-4:/bitnami/redis/data
+    environment:
+      - "ALLOW_EMPTY_PASSWORD=yes"
+      - "REDIS_NODES=redis-cluster-node-0 redis-cluster-node-1 redis-cluster-node-2 redis-cluster-node-3 redis-cluster-node-4 redis-cluster-node-5"
+
+  redis-cluster-node-5:
+    image: docker.io/bitnami/redis-cluster:latest
+    volumes:
+      - redis-cluster_data-5:/bitnami/redis/data
+    depends_on:
+      - redis-cluster-node-0
+      - redis-cluster-node-1
+      - redis-cluster-node-2
+      - redis-cluster-node-3
+      - redis-cluster-node-4
+    environment:
+      - "ALLOW_EMPTY_PASSWORD=yes"
+      - "REDIS_CLUSTER_REPLICAS=1"
+      - "REDIS_NODES=redis-cluster-node-0 redis-cluster-node-1 redis-cluster-node-2 redis-cluster-node-3 redis-cluster-node-4 redis-cluster-node-5"
+      - "REDIS_CLUSTER_CREATOR=yes"
+    ports:
+      - "6379:6379"
+
+volumes:
+  redis-cluster_data-0:
+    driver: local
+  redis-cluster_data-1:
+    driver: local
+  redis-cluster_data-2:
+    driver: local
+  redis-cluster_data-3:
+    driver: local
+  redis-cluster_data-4:
+    driver: local
+  redis-cluster_data-5:
+    driver: local

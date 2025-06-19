@@ -29,7 +29,7 @@ Gem::Specification.new do |spec|
   # Other non-essential development dependencies go in the Gemfile.
   spec.add_development_dependency 'connection_pool', '~> 2.0'
   spec.add_development_dependency 'json'
-  spec.add_development_dependency 'redis', '>= 3.0'
+  spec.add_development_dependency 'redis', '>= 4.0'
   spec.add_development_dependency 'rspec', '~> 3.8'
   spec.add_development_dependency 'timecop', '>= 0.9'
 end
