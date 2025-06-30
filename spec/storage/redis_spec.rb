@@ -1,18 +1,27 @@
 # frozen_string_literal: true
 
 require 'connection_pool'
-require 'redis'
 
 RSpec.describe Faulty::Storage::Redis do
   subject(:storage) { described_class.new(**options.merge(client: client)) }
 
   let(:options) { {} }
-  let(:client) { Redis.new(timeout: 1) }
+  let(:client_options) { { timeout: 1 } }
+  let(:client_class) do
+    if ENV['REDIS_CLUSTER'] == 'true'
+      require 'redis-clustering'
+      Redis::Cluster
+    else
+      require 'redis'
+      Redis
+    end
+  end
+  let(:client) { client_class.new(**client_options) }
   let(:circuit) { Faulty::Circuit.new('test', storage: storage) }
 
   after { circuit&.reset! }
 
-  context 'with default options' do
+  context 'with default options', unless: ENV['REDIS_CLUSTER'] == 'true' do
     subject(:storage) { described_class.new }
 
     it 'can add an entry' do
@@ -32,7 +41,7 @@ RSpec.describe Faulty::Storage::Redis do
     let(:pool_size) { 100 }
 
     let(:client) do
-      ConnectionPool.new(size: pool_size, timeout: 1) { Redis.new(timeout: 1) }
+      ConnectionPool.new(size: pool_size, timeout: 1) { client_class.new(**client_options) }
     end
 
     it 'adds an entry' do
@@ -54,7 +63,7 @@ RSpec.describe Faulty::Storage::Redis do
   end
 
   context 'when Redis has high timeout' do
-    let(:client) { Redis.new(timeout: 5.0) }
+    let(:client) { client_class.new(**client_options, timeout: 5.0) }
 
     it 'prints timeout warning' do
       timeouts = { connect_timeout: 5.0, read_timeout: 5.0, write_timeout: 5.0 }
@@ -63,7 +72,7 @@ RSpec.describe Faulty::Storage::Redis do
   end
 
   context 'when Redis has high reconnect_attempts' do
-    let(:client) { Redis.new(timeout: 1, reconnect_attempts: 2) }
+    let(:client) { client_class.new(**client_options, reconnect_attempts: 2) }
 
     it 'prints reconnect_attempts warning' do
       expect { storage }.to output(/Your setting is larger/).to_stderr
@@ -72,7 +81,7 @@ RSpec.describe Faulty::Storage::Redis do
 
   context 'when ConnectionPool has high timeout' do
     let(:client) do
-      ConnectionPool.new(timeout: 6) { Redis.new(timeout: 1) }
+      ConnectionPool.new(timeout: 6) { client_class.new(**client_options) }
     end
 
     it 'prints timeout warning' do
@@ -82,7 +91,7 @@ RSpec.describe Faulty::Storage::Redis do
 
   context 'when ConnectionPool Redis client has high timeout' do
     let(:client) do
-      ConnectionPool.new(timeout: 1) { Redis.new(timeout: 7.0) }
+      ConnectionPool.new(timeout: 1) { client_class.new(**client_options, timeout: 7.0) }
     end
 
     it 'prints Redis timeout warning' do
@@ -106,7 +115,7 @@ RSpec.describe Faulty::Storage::Redis do
     it 'sets opened_at to the maximum' do
       Timecop.freeze
       storage.open(circuit, Faulty.current_time)
-      client.del('faulty:circuit:test:opened_at')
+      client.del('faulty:circuit:{test}:opened_at')
       status = storage.status(circuit)
       expect(status.opened_at).to eq(Faulty.current_time - storage.options.circuit_ttl)
     end
@@ -114,8 +123,8 @@ RSpec.describe Faulty::Storage::Redis do
 
   context 'when history entries are integers and floats' do
     it 'gets floats' do
-      client.lpush('faulty:circuit:test:entries', '1660865630:1')
-      client.lpush('faulty:circuit:test:entries', '1660865646.897674:1')
+      client.lpush('faulty:circuit:{test}:entries', '1660865630:1')
+      client.lpush('faulty:circuit:{test}:entries', '1660865646.897674:1')
       expect(storage.history(circuit)).to eq([[1_660_865_630.0, true], [1_660_865_646.897674, true]])
     end
   end
