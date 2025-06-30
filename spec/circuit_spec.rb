@@ -331,7 +331,13 @@ RSpec.context :circuits do
   end
 
   context 'with redis storage' do
-    let(:storage) { Faulty::Storage::Redis.new }
+    let(:storage) do
+      if ENV['REDIS_CLUSTER'] == 'true'
+        Faulty::Storage::Redis.new(client: Redis::Cluster.new(timeout: 1))
+      else
+        Faulty::Storage::Redis.new
+      end
+    end
 
     after { circuit.reset! }
 
@@ -341,7 +347,11 @@ RSpec.context :circuits do
   context 'with fault-tolerant redis storage' do
     let(:storage) do
       Faulty::Storage::FaultTolerantProxy.new(
-        Faulty::Storage::Redis.new,
+        if ENV['REDIS_CLUSTER'] == 'true'
+          Faulty::Storage::Redis.new(client: Redis::Cluster.new(timeout: 1))
+        else
+          Faulty::Storage::Redis.new
+        end,
         notifier: Faulty::Events::Notifier.new
       )
     end
