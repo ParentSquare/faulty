@@ -1353,9 +1353,10 @@ but there are and have been many other options:
 - [circuitbox](https://github.com/yammer/circuitbox): Also uses a block syntax
   to manually define circuits. It uses Moneta to abstract circuit storage to
   allow any key-value store.
-- [stoplight](https://github.com/bolshakov/stoplight): Stoplight offers a built-in Admin Panel
-  while focusing on performance by utilizing Lua scripts for the Redis data store
-  which minimizes operational overhead.
+- [stoplight](https://github.com/bolshakov/stoplight): Stoplight uses redis for
+  server-less coordination in distributed environments to ensure coordinated states
+  transitions and recovery and offers a built-in Admin Panel while focusing on performance
+  by utilizing Lua scripts for the Redis data store which minimizes operational overhead.
 
 ### Previous Work
 
