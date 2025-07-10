@@ -1353,12 +1353,15 @@ but there are and have been many other options:
 - [circuitbox](https://github.com/yammer/circuitbox): Also uses a block syntax
   to manually define circuits. It uses Moneta to abstract circuit storage to
   allow any key-value store.
+- [stoplight](https://github.com/bolshakov/stoplight): Stoplight uses Redis for
+  leader-less coordination in distributed environments to ensure coordinated states
+  transitions and recovery and offers a built-in Admin Panel while focusing on performance
+  by utilizing Lua scripts for the Redis data store which minimizes operational overhead.
 
 ### Previous Work
 
 - [circuit_breaker-ruby](https://github.com/scripbox/circuit_breaker-ruby) (no
   recent activity)
-- [stoplight](https://github.com/orgsync/stoplight) (unmaintained)
 - [circuit_breaker](https://github.com/wsargent/circuit_breaker) (no recent
 activity)
 - [simple_circuit_breaker](https://github.com/soundcloud/simple_circuit_breaker)
