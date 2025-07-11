@@ -293,7 +293,7 @@ class Faulty
       end
 
       def ckey(circuit_name, *parts)
-        key('circuit', circuit_name, *parts)
+        key('circuit', hashtag(circuit_name), *parts)
       end
 
       # @return [String] The key for circuit options
@@ -323,7 +323,7 @@ class Faulty
 
       # Get the current key to add circuit names to
       def list_key
-        key('list', current_list_block)
+        key('list', hashtag(current_list_block))
       end
 
       # Get all active circuit list keys
@@ -348,8 +348,12 @@ class Faulty
         num_blocks = (options.circuit_ttl.to_f / options.list_granularity).floor + 1
         start_block = current_list_block - num_blocks + 1
         num_blocks.times.map do |i|
-          key('list', start_block + i)
+          key('list', hashtag(start_block + i))
         end
+      end
+
+      def hashtag(part)
+        "{#{part}}"
       end
 
       # Get the block number for the current list set
@@ -372,11 +376,11 @@ class Faulty
       #   inside the block
       def watch_exec(key, old, &block)
         redis do |r|
-          r.watch(key) do
-            if old.include?(r.get(key))
-              r.multi(&block)
+          r.watch(key) do |c|
+            if old.include?(c.get(key))
+              c.multi(&block)
             else
-              r.unwatch
+              c.unwatch
               nil
             end
           end
@@ -424,11 +428,17 @@ class Faulty
         warn "Faulty error while checking client options: #{e.message}"
       end
 
-      def check_redis_options!
+      def check_redis_options! # rubocop:disable Metrics/MethodLength
         gte5 = ::Redis::VERSION.to_f >= 5
-        method = gte5 ? :config : :options
         ropts = redis do |r|
-          r.instance_variable_get(:@client).public_send(method)
+          if r.instance_of?(::Redis)
+            method = gte5 ? :config : :options
+            r._client.public_send(method)
+          elsif r.instance_of?(::Redis::Cluster)
+            r._client.config
+          else
+            raise TypeError, "Unsupported Redis client type: #{r.class}"
+          end
         end
 
         bad_timeouts = {}
@@ -445,7 +455,16 @@ class Faulty
           MSG
         end
 
-        gt1_retry = gte5 ? ropts.retry_connecting?(1, nil) : ropts[:reconnect_attempts] > 1
+        gt1_retry = redis do |r|
+          if r.instance_of?(::Redis)
+            gte5 ? ropts.retry_connecting?(1, nil) : ropts[:reconnect_attempts] > 1
+          elsif r.instance_of?(::Redis::Cluster)
+            ra = ropts.client_config[:reconnect_attempts]
+            (ra.is_a?(Array) && ra.length > 1) || ra > 1
+          else
+            raise TypeError, "Unsupported Redis client type: #{r.class}"
+          end
+        end
         if gt1_retry
           warn <<~MSG
             Faulty recommends setting Redis reconnect_attempts to <= 1 to

@@ -13,7 +13,8 @@ jobs:
       fail-fast: false
       matrix:
         ruby: ['2.4', '2.5', '2.6', '2.7', '3.0', jruby-head, truffleruby-head]
-        redis: ['4']
+        redis: ['4', '5']
+        redis_cluster: [false, true]
         search: [['opensearch-ruby:2.1.0', 'opensearchproject/opensearch:2.2.1']]
         include:
           # Redis 3
@@ -36,11 +37,20 @@ jobs:
           - ruby: '2.3'
             redis: '4'
             search: ['elasticsearch:7.5.0', 'elasticsearch:7.13.4']
+        exclude:
+          # redis-clustering requires Ruby >= 2.7
+          - ruby: '2.3'
+            redis_cluster: true
+          - ruby: '2.4'
+            redis_cluster: true
+          - ruby: '2.5'
+            redis_cluster: true
+          - ruby: '2.6'
+            redis_cluster: true
+          # redis-clustering first release is 5.x
+          - redis: '4'
+            redis_cluster: true
     services:
-      redis:
-        image: redis
-        ports:
-          - 6379:6379
       search:
         image: ${{ matrix.search[1] }}
         ports:
@@ -56,6 +66,7 @@ jobs:
 
     env:
       REDIS_VERSION: ${{ matrix.redis }}
+      REDIS_CLUSTER: ${{ matrix.redis_cluster && 'true' || '' }}
       SEARCH_GEM: ${{ matrix.search[0] }}
 
     steps:
@@ -64,6 +75,14 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
+      - name: Start Redis (single instance)
+        if: ${{ !matrix.redis_cluster }}
+        run: |
+          docker run -d --name redis -p 6379:6379 redis
+      - name: Start Redis Cluster
+        if: ${{ matrix.redis_cluster }}
+        run: |
+          docker compose -f docker-compose.redis-cluster.yml up -d --wait
       - name: start MySQL
         run: sudo /etc/init.d/mysql start
       - run: bundle exec rspec --format doc
