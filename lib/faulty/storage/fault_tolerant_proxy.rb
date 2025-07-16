@@ -177,6 +177,21 @@ class Faulty
         stub_status(circuit)
       end
 
+      # Safely reserve execution of a circuit
+      #
+      # If the backend is unavailable, this returns `true` to always allow
+      # execution.
+      #
+      # @see Interface#reserve
+      # @param (see Interface#reserve)
+      # @return (see Interface#reserve)
+      def reserve(circuit, reserved_at, previous_reserved_at)
+        @storage.reserve(circuit, reserved_at, previous_reserved_at)
+      rescue StandardError => e
+        options.notifier.notify(:storage_failure, circuit: circuit, action: :reserve, error: e)
+        true
+      end
+
       # This cache makes any storage fault tolerant, so this is always `true`
       #
       # @return [true]
