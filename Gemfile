@@ -13,6 +13,8 @@ not_jruby = %i[ruby mingw x64_mingw].freeze
 gem 'activesupport', '>= 4.2'
 gem 'byebug', platforms: not_jruby
 gem 'irb', '~> 1.0'
+# Pry for interactive console in all environments
+gem 'pry'
 # Minimum of 0.5.0 for specific error classes
 gem 'mysql2', '>= 0.5.0', platforms: not_jruby
 gem 'redcarpet', '~> 3.5', platforms: not_jruby
