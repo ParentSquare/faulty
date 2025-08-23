@@ -1,6 +1,11 @@
 # frozen_string_literal: true
 
 require 'redis'
+begin
+  require 'redis-clustering'
+rescue LoadError
+  nil
+end
 
 class Faulty
   module Patch
