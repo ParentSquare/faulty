@@ -8,27 +8,26 @@ gemspec
 # here. This also allows us to use conditional dependencies that depend on the
 # platform
 
-not_jruby = %i[ruby mingw x64_mingw].freeze
+not_jruby = %i[ruby windows].freeze
 
 gem 'activesupport', '>= 4.2'
 gem 'byebug', platforms: not_jruby
+gem 'honeybadger', '>= 2.0'
 gem 'irb', '~> 1.0'
+# stdlib `logger` became a bundled gem in Ruby 3.5. The runtime only needs
+# it when the default LogListener actually constructs a Logger; we pull it
+# in here so the test suite and `bin/benchmark` boot the default Faulty
+# pipeline without forcing it on consumers who supply their own listeners.
+gem 'logger'
 # Minimum of 0.5.0 for specific error classes
 gem 'mysql2', '>= 0.5.0', platforms: not_jruby
 gem 'redcarpet', '~> 3.5', platforms: not_jruby
 gem 'rspec_junit_formatter', '~> 0.4'
+gem 'rubocop', '~> 1.84'
+gem 'rubocop-rspec', '~> 3.9'
+gem 'simplecov', '>= 0.17.1'
+gem 'simplecov-cobertura', '~> 3.1'
 gem 'yard', '~> 0.9.25', platforms: not_jruby
-
-if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.4')
-  gem 'honeybadger', '>= 2.0'
-end
-
-if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
-  gem 'rubocop', '~> 1.32.0'
-  gem 'rubocop-rspec', '~> 2.12'
-  gem 'simplecov', '>= 0.17.1'
-  gem 'simplecov-cobertura', '~> 2.1'
-end
 
 if ENV['REDIS_VERSION']
   gem 'redis', "~> #{ENV['REDIS_VERSION']}"
@@ -39,5 +38,5 @@ if ENV['SEARCH_GEM']
   name = 'opensearch-ruby' if name == 'opensearch'
   gem name, "~> #{version}"
 else
-  gem 'opensearch-ruby', '~> 2.1'
+  gem 'opensearch-ruby', '~> 3.4'
 end

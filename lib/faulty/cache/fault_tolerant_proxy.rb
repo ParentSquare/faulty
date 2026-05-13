@@ -30,19 +30,19 @@ class Faulty
       # @param cache [Cache::Interface] The cache backend to wrap
       # @param options [Hash] Attributes for {Options}
       # @yield [Options] For setting options in a block
-      def initialize(cache, **options, &block)
+      def initialize(cache, **options, &)
         @cache = cache
-        @options = Options.new(options, &block)
+        @options = Options.new(options, &)
       end
 
       # Wrap a cache in a FaultTolerantProxy unless it's already fault tolerant
       #
       # @param cache [Cache::Interface] The cache to maybe wrap
       # @return [Cache::Interface] The original cache or a {FaultTolerantProxy}
-      def self.wrap(cache, **options, &block)
+      def self.wrap(cache, ...)
         return cache if cache.fault_tolerant?
 
-        new(cache, **options, &block)
+        new(cache, ...)
       end
 
       # Read from the cache safely

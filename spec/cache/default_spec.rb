@@ -38,7 +38,7 @@ RSpec.describe Faulty::Cache::Default do
       it 'uses Rails.cache' do
         wrapper = cache.instance_variable_get(:@cache)
         expect(wrapper).to be_a(Faulty::Cache::Rails)
-        expect(wrapper.instance_variable_get(:@cache)).to eq(::Rails.cache)
+        expect(wrapper.instance_variable_get(:@cache)).to eq(Rails.cache)
       end
     end
   end

@@ -52,8 +52,8 @@ class Faulty
         #   of storage backends to setup.
         # @param options [Hash] Attributes for {Options}
         # @yield [Options] For setting options in a block
-        def wrap(storage, **options, &block)
-          options = Options.new(options, &block)
+        def wrap(storage, **options, &)
+          options = Options.new(options, &)
           if storage.nil?
             Memory.new
           elsif storage.is_a?(Array)

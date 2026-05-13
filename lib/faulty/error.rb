@@ -8,7 +8,7 @@ class Faulty
   class UninitializedError < FaultyError
     def initialize(message = nil)
       message ||= 'Faulty is not initialized'
-      super(message)
+      super
     end
   end
 
@@ -16,7 +16,7 @@ class Faulty
   class AlreadyInitializedError < FaultyError
     def initialize(message = nil)
       message ||= 'Faulty is already initialized'
-      super(message)
+      super
     end
   end
 
@@ -24,7 +24,7 @@ class Faulty
   class MissingDefaultInstanceError < FaultyError
     def initialize(message = nil)
       message ||= 'No default instance. Create one with init or get your instance with Faulty[:name]'
-      super(message)
+      super
     end
   end
 

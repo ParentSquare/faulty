@@ -71,9 +71,9 @@ class Faulty
 
       # @param options [Hash] Attributes for {Options}
       # @yield [Options] For setting options in a block
-      def initialize(**options, &block)
+      def initialize(**options, &)
         @circuits = Concurrent::Map.new
-        @options = Options.new(options, &block)
+        @options = Options.new(options, &)
       end
 
       # Get the options stored for circuit

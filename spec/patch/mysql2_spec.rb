@@ -18,11 +18,9 @@ RSpec.describe 'Faulty::Patch::Mysql2', if: defined?(Mysql2) do
   def trip_circuit
     client
     4.times do
-      begin
-        new_client(host: '127.0.0.1', port: 9999, faulty: { instance: faulty })
-      rescue Mysql2::Error
-        # Expect connection failure
-      end
+      new_client(host: '127.0.0.1', port: 9999, faulty: { instance: faulty })
+    rescue Mysql2::Error
+      # Expect connection failure
     end
   end
 

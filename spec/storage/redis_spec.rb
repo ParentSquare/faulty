@@ -4,7 +4,7 @@ require 'connection_pool'
 require 'redis'
 
 RSpec.describe Faulty::Storage::Redis do
-  subject(:storage) { described_class.new(**options.merge(client: client)) }
+  subject(:storage) { described_class.new(**options, client: client) }
 
   let(:options) { {} }
   let(:client) { Redis.new(timeout: 1) }
@@ -40,7 +40,7 @@ RSpec.describe Faulty::Storage::Redis do
       expect(storage.history(circuit).size).to eq(1)
     end
 
-    it 'opens the circuit once when called concurrently', concurrency: true do
+    it 'opens the circuit once when called concurrently', :concurrency do
       concurrent_warmup do
         # Do something small just to get a connection from the pool
         storage.unlock(circuit)
@@ -124,7 +124,7 @@ RSpec.describe Faulty::Storage::Redis do
     before { hide_const('ConnectionPool') }
 
     it 'can construct a storage' do
-      storage
+      expect { storage }.not_to raise_error
     end
   end
 end

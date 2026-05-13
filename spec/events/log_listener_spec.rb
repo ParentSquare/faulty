@@ -4,7 +4,7 @@ RSpec.describe Faulty::Events::LogListener do
   subject(:listener) { described_class.new(logger) }
 
   let(:logger) do
-    logger = ::Logger.new(io)
+    logger = Logger.new(io)
     logger.level = :debug
     logger
   end

@@ -31,9 +31,9 @@ class Faulty
       # @param storage [Storage::Interface] The storage backend to wrap
       # @param options [Hash] Attributes for {Options}
       # @yield [Options] For setting options in a block
-      def initialize(storage, **options, &block)
+      def initialize(storage, **options, &)
         @storage = storage
-        @options = Options.new(options, &block)
+        @options = Options.new(options, &)
       end
 
       # Wrap a storage backend in a FaultTolerantProxy unless it's already
@@ -41,10 +41,10 @@ class Faulty
       #
       # @param storage [Storage::Interface] The storage to maybe wrap
       # @return [Storage::Interface] The original storage or a {FaultTolerantProxy}
-      def self.wrap(storage, **options, &block)
+      def self.wrap(storage, ...)
         return storage if storage.fault_tolerant?
 
-        new(storage, **options, &block)
+        new(storage, ...)
       end
 
       # @!method lock(circuit, state)

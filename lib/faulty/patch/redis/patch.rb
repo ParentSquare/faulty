@@ -55,7 +55,7 @@ class Faulty
       #
       # The call* methods above will then raise that error, so we are able to
       # capture it with faulty_run.
-      def io(&block)
+      def io(&)
         return super unless @faulty_circuit
 
         reply = super

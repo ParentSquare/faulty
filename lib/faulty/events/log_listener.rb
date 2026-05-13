@@ -10,8 +10,17 @@ class Faulty
       #   by default if available, otherwise it creates a new `Logger` to
       #   stderr.
       def initialize(logger = nil)
-        logger ||= defined?(Rails) ? Rails.logger : ::Logger.new($stderr)
-        @logger = logger
+        @logger = if logger
+          logger
+        elsif defined?(Rails)
+          Rails.logger
+        else
+          # Lazy-require so consumers who pass their own logger or use Rails
+          # don't need the stdlib `logger` gem on the load path. Required for
+          # Ruby >= 3.5 where `logger` was extracted from the default gems.
+          require 'logger'
+          ::Logger.new($stderr)
+        end
       end
 
       # (see ListenerInterface#handle)
