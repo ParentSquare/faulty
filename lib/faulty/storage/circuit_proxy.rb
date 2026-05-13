@@ -40,9 +40,9 @@ class Faulty
       # @param storage [Storage::Interface] The storage backend to wrap
       # @param options [Hash] Attributes for {Options}
       # @yield [Options] For setting options in a block
-      def initialize(storage, **options, &block)
+      def initialize(storage, **options, &)
         @storage = storage
-        @options = Options.new(options, &block)
+        @options = Options.new(options, &)
       end
 
       %i[

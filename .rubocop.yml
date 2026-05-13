@@ -1,11 +1,16 @@
 ---
-require:
+plugins:
   - rubocop-rspec
 
 AllCops:
-  TargetRubyVersion: 2.3
+  TargetRubyVersion: 3.1
+  NewCops: enable
+  SuggestExtensions: false
 
 Gemspec/DeprecatedAttributeAssignment: { Enabled: true }
+# Faulty intentionally keeps essential dev deps in the gemspec; the rest
+# live in the Gemfile (per the comment in faulty.gemspec).
+Gemspec/DevelopmentDependencies: { Enabled: false }
 Gemspec/RequireMFA: { Enabled: true }
 
 Layout/ArgumentAlignment: { EnforcedStyle: with_fixed_indentation }
@@ -54,19 +59,22 @@ Lint/UselessRuby2Keywords: { Enabled: true }
 
 RSpec/BeEq: { Enabled: true }
 RSpec/BeNil: { Enabled: true }
-RSpec/Capybara/SpecificMatcher: { Enabled: true }
 RSpec/ChangeByZero: { Enabled: true }
 RSpec/ExampleLength: { Enabled: false }
 RSpec/ExcessiveDocstringSpacing: { Enabled: true }
-RSpec/FactoryBot/SyntaxMethods: { Enabled: true }
-RSpec/FilePath: { Enabled: false }
 RSpec/IdenticalEqualityAssertion: { Enabled: true }
+# auto_wire_spec deliberately exercises wiring multiple instances of the
+# same backend, where numeric suffixes (storage1/storage2) read clearer
+# than any contrived semantic name.
+RSpec/IndexedLet:
+  Exclude:
+    - 'spec/storage/auto_wire_spec.rb'
 RSpec/MessageSpies: { Enabled: false }
 RSpec/MultipleExpectations: { Enabled: false }
 RSpec/MultipleMemoizedHelpers: { Enabled: false }
 RSpec/NamedSubject: { Enabled: false }
-RSpec/Rails/AvoidSetupHook: { Enabled: true }
-RSpec/Rails/HaveHttpStatus: { Enabled: true }
+RSpec/SpecFilePathFormat: { Enabled: false }
+RSpec/SpecFilePathSuffix: { Enabled: false }
 RSpec/SubjectDeclaration: { Enabled: true }
 RSpec/SubjectStub: { Enabled: false }
 RSpec/VerifiedDoubleReference: { Enabled: true }
@@ -80,6 +88,12 @@ Metrics/PerceivedComplexity: { Enabled: false }
 
 Naming/BlockForwarding: { Enabled: true }
 Naming/MethodParameterName: { MinNameLength: 1 }
+# Storage interface methods like #open / #close / #reopen are imperative
+# actions, not predicates — they happen to return a boolean to indicate
+# success. Renaming them would break the public Storage::Interface contract.
+Naming/PredicateMethod:
+  Exclude:
+    - 'lib/faulty/storage/**/*.rb'
 
 Security/CompoundHash: { Enabled: true }
 Security/IoMethods: { Enabled: true }
@@ -115,6 +129,11 @@ Style/NilLambda: { Enabled: true }
 Style/NumberedParameters: { Enabled: true }
 Style/NumberedParametersLimit: { Enabled: true }
 Style/ObjectThen: { Enabled: true }
+# Patch files monkey-patch upstream constants (Redis, Mysql2) and so
+# necessarily reopen multiple top-level modules in the same file.
+Style/OneClassPerFile:
+  Exclude:
+    - 'lib/faulty/patch/**/*.rb'
 Style/OpenStructUse: { Enabled: true }
 Style/QuotedSymbols: { Enabled: true }
 Style/RedundantArgument: { Enabled: true }

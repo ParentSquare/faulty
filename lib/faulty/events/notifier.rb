@@ -22,11 +22,9 @@ class Faulty
         raise ArgumentError, "Unknown event #{event}" unless EVENTS.include?(event)
 
         @listeners.each do |listener|
-          begin
-            listener.handle(event, payload)
-          rescue StandardError => e
-            warn "Faulty listener #{listener.class.name} crashed: #{e.message}"
-          end
+          listener.handle(event, payload)
+        rescue StandardError => e
+          warn "Faulty listener #{listener.class.name} crashed: #{e.message}"
         end
       end
     end

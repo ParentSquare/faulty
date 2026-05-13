@@ -6,7 +6,7 @@ RSpec.context :circuits do
   let(:circuit) { Faulty::Circuit.new('test', **options) }
 
   let(:open_circuit) do
-    circuit = Faulty::Circuit.new('test', **options.merge(rate_threshold: 0, sample_threshold: 0))
+    circuit = Faulty::Circuit.new('test', **options, rate_threshold: 0, sample_threshold: 0)
     circuit.try_run { raise 'failed' }
     circuit
   end
@@ -72,7 +72,7 @@ RSpec.context :circuits do
     end
 
     it 'raises a CircuitTrippedError when the threshold is passed' do
-      circuit = Faulty::Circuit.new('test', **options.merge(rate_threshold: 0, sample_threshold: 0))
+      circuit = Faulty::Circuit.new('test', **options, rate_threshold: 0, sample_threshold: 0)
       expect do
         circuit.run { raise 'failed' }
       end.to raise_error(
@@ -130,7 +130,7 @@ RSpec.context :circuits do
     end
 
     it 'does not close circuit until past sample threshold' do
-      circuit = Faulty::Circuit.new('test', **options.merge(rate_threshold: 0, sample_threshold: 2))
+      circuit = Faulty::Circuit.new('test', **options, rate_threshold: 0, sample_threshold: 2)
       circuit.try_run { raise 'fail' }
       expect(circuit.status.closed?).to be(true)
       circuit.try_run { raise 'fail' }
@@ -138,7 +138,7 @@ RSpec.context :circuits do
     end
 
     it 'does not close circuit until past rate threshold' do
-      circuit = Faulty::Circuit.new('test', **options.merge(rate_threshold: 0.6, sample_threshold: 0))
+      circuit = Faulty::Circuit.new('test', **options, rate_threshold: 0.6, sample_threshold: 0)
       circuit.try_run { 'ok' }
       circuit.try_run { raise 'fail' }
       expect(circuit.status.closed?).to be(true)
@@ -212,7 +212,7 @@ RSpec.context :circuits do
 
     it 'raises unwrapped error if error is excluded' do
       test_error = Class.new(StandardError)
-      circuit = Faulty::Circuit.new('test', **options.merge(exclude: test_error))
+      circuit = Faulty::Circuit.new('test', **options, exclude: test_error)
       expect do
         circuit.run { raise test_error }
       end.to raise_error(test_error)
@@ -220,14 +220,14 @@ RSpec.context :circuits do
 
     it 'raises unwrapped error if error is not included' do
       test_error = Class.new(StandardError)
-      circuit = Faulty::Circuit.new('test', **options.merge(errors: test_error))
+      circuit = Faulty::Circuit.new('test', **options, errors: test_error)
       expect do
         circuit.run { raise StandardError, 'test' }
       end.to raise_error(StandardError, 'test')
     end
 
     it 'raises all unwrapped errors if errors option is empty' do
-      circuit = Faulty::Circuit.new('test', **options.merge(errors: []))
+      circuit = Faulty::Circuit.new('test', **options, errors: [])
       expect do
         circuit.run { raise 'fail' }
       end.to raise_error(RuntimeError, 'fail')

@@ -42,9 +42,9 @@ class Faulty
       #   additional entries will be tried in sequence until one succeeds.
       # @param options [Hash] Attributes for {Options}
       # @yield [Options] For setting options in a block
-      def initialize(storages, **options, &block)
+      def initialize(storages, **options, &)
         @storages = storages
-        @options = Options.new(options, &block)
+        @options = Options.new(options, &)
       end
 
       # Get options from the first available storage backend
@@ -189,12 +189,10 @@ class Faulty
       def send_chain(method, *args)
         errors = []
         @storages.each do |s|
-          begin
-            return s.public_send(method, *args)
-          rescue StandardError => e
-            errors << e
-            yield e
-          end
+          return s.public_send(method, *args)
+        rescue StandardError => e
+          errors << e
+          yield e
         end
 
         raise AllFailedError.new("#{self.class}##{method} failed for all storage backends", errors)
@@ -211,11 +209,9 @@ class Faulty
       def send_all(method, *args)
         errors = []
         @storages.each do |s|
-          begin
-            s.public_send(method, *args)
-          rescue StandardError => e
-            errors << e
-          end
+          s.public_send(method, *args)
+        rescue StandardError => e
+          errors << e
         end
 
         if errors.empty?

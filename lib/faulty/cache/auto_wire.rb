@@ -37,8 +37,8 @@ class Faulty
         # @param cache [Interface] A cache backend
         # @param options [Hash] Attributes for {Options}
         # @yield [Options] For setting options in a block
-        def wrap(cache, **options, &block)
-          options = Options.new(options, &block)
+        def wrap(cache, **options, &)
+          options = Options.new(options, &)
           if cache.nil?
             Cache::Default.new
           elsif cache.fault_tolerant?

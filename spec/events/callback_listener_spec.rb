@@ -11,11 +11,11 @@ RSpec.describe Faulty::Events::CallbackListener do
   end
 
   it 'does nothing for unknown event' do
-    listener.handle(:fake_event, circuit: 'test')
+    expect { listener.handle(:fake_event, circuit: 'test') }.not_to raise_error
   end
 
   it 'allows event with no handlers' do
-    listener.handle(:circuit_opened, circuit: 'test')
+    expect { listener.handle(:circuit_opened, circuit: 'test') }.not_to raise_error
   end
 
   it 'calls multiple handlers' do
@@ -23,7 +23,7 @@ RSpec.describe Faulty::Events::CallbackListener do
     listener.circuit_opened { |payload| results << payload }
     listener.circuit_opened { |payload| results << payload }
     listener.handle(:circuit_opened, circuit: 'test')
-    expect(results).to match_array([{ circuit: 'test' }, { circuit: 'test' }])
+    expect(results).to contain_exactly({ circuit: 'test' }, { circuit: 'test' })
   end
 
   it 'can register listeners in initialize block' do

@@ -40,9 +40,9 @@ class Faulty
       # @param cache [Cache::Interface] The cache backend to wrap
       # @param options [Hash] Attributes for {Options}
       # @yield [Options] For setting options in a block
-      def initialize(cache, **options, &block)
+      def initialize(cache, **options, &)
         @cache = cache
-        @options = Options.new(options, &block)
+        @options = Options.new(options, &)
       end
 
       %i[read write].each do |method|

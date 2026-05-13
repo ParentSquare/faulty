@@ -80,8 +80,8 @@ class Faulty
 
       # @param options [Hash] Attributes for {Options}
       # @yield [Options] For setting options in a block
-      def initialize(**options, &block)
-        @options = Options.new(options, &block)
+      def initialize(**options, &)
+        @options = Options.new(options, &)
 
         # Ensure JSON is available since we don't explicitly require it
         JSON # rubocop:disable Lint/Void
@@ -387,9 +387,9 @@ class Faulty
       #
       # @yield [Redis] Yields the connection to the block
       # @return The value returned from the block
-      def redis(&block)
+      def redis(&)
         if options.client.respond_to?(:with)
-          options.client.with(&block)
+          options.client.with(&)
         else
           yield options.client
         end

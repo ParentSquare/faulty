@@ -54,7 +54,7 @@ class Faulty
       }
 
       module Errors
-        PATCHED_MODULE::Transport::Transport::ERRORS.each do |_code, klass|
+        PATCHED_MODULE::Transport::Transport::ERRORS.each_value do |klass|
           MAPPED_ERRORS[klass] = const_set(klass.name.split('::').last, Module.new)
         end
       end
@@ -69,7 +69,7 @@ class Faulty
       end
       private_constant :ERROR_MAPPER, :MAPPED_ERRORS
 
-      def initialize(arguments = {}, &block)
+      def initialize(arguments = {}, &)
         super
 
         errors = [PATCHED_MODULE::Transport::Transport::Error]

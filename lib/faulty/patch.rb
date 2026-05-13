@@ -75,7 +75,7 @@ class Faulty
       #   `:error_mapper`
       # @yield [Circuit::Options] For setting override options in a block
       # @return [Circuit, nil] The circuit if one was created
-      def circuit_from_hash(default_name, hash, **options, &block)
+      def circuit_from_hash(default_name, hash, **options, &)
         return unless hash
 
         hash = symbolize_keys(hash)
@@ -84,7 +84,7 @@ class Faulty
         error_mapper = options.delete(:patched_error_mapper)
         hash[:error_mapper] ||= error_mapper if error_mapper && patch_errors
         faulty = resolve_instance(hash.delete(:instance))
-        faulty.circuit(name, **hash, **options, &block)
+        faulty.circuit(name, **hash, **options, &)
       end
 
       # Create a full set of {CircuitError}s with a given base error class

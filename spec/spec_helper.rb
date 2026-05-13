@@ -25,11 +25,9 @@ require 'json'
 require 'connection_pool'
 
 begin
-  # We don't test Mysql2 on Ruby 2.3 since that would require
-  # installing an old EOL version of OpenSSL
-  require 'faulty/patch/mysql2' if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.4')
+  require 'faulty/patch/mysql2'
 rescue LoadError
-  # Ok if mysql2 isn't available
+  # Ok if mysql2 isn't available (e.g. JRuby/TruffleRuby)
 end
 
 require_relative 'support/concurrency'

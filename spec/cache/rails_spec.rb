@@ -14,7 +14,7 @@ RSpec.describe Faulty::Cache::Rails do
 
   it 'uses global Rails.cache by default' do
     cache = described_class.new
-    expect(cache.instance_variable_get(:@cache)).to eq(::Rails.cache)
+    expect(cache.instance_variable_get(:@cache)).to eq(Rails.cache)
     expect(cache).not_to be_fault_tolerant
   end
 

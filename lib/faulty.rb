@@ -41,12 +41,12 @@ class Faulty
     # @param config [Hash] Attributes for {Faulty::Options}
     # @yield [Faulty::Options] For setting options in a block
     # @return [self]
-    def init(default_name = :default, **config, &block)
+    def init(default_name = :default, **config, &)
       raise AlreadyInitializedError if @instances
 
       @default_instance = default_name
       @instances = Concurrent::Map.new
-      register(default_name, new(**config, &block)) unless default_name.nil?
+      register(default_name, new(**config, &)) unless default_name.nil?
       self
     rescue StandardError
       @instances = nil
@@ -110,8 +110,8 @@ class Faulty
     # @param (see Faulty#circuit)
     # @yield (see Faulty#circuit)
     # @return (see Faulty#circuit)
-    def circuit(name, **config, &block)
-      default.circuit(name, **config, &block)
+    def circuit(name, **config, &)
+      default.circuit(name, **config, &)
     end
 
     # Get a list of all circuit names for the default instance
@@ -236,8 +236,8 @@ class Faulty
   # @see Options
   # @param options [Hash] Attributes for {Options}
   # @yield [Options] For setting options in a block
-  def initialize(**options, &block)
-    @options = Options.new(options, &block)
+  def initialize(**options, &)
+    @options = Options.new(options, &)
     @registry = CircuitRegistry.new(circuit_options)
   end
 
@@ -252,9 +252,9 @@ class Faulty
   # @param options [Hash] Attributes for {Circuit::Options}
   # @yield [Circuit::Options] For setting options in a block
   # @return [Circuit] The new circuit or the existing circuit if it already exists
-  def circuit(name, **options, &block)
+  def circuit(name, **options, &)
     name = name.to_s
-    @registry.retrieve(name, options, &block)
+    @registry.retrieve(name, options, &)
   end
 
   # Get a list of all circuit names
@@ -285,7 +285,7 @@ class Faulty
   # @return [Hash] The circuit options
   def circuit_options
     @options.to_h
-      .select { |k, _v| %i[cache storage notifier].include?(k) }
+      .slice(:cache, :storage, :notifier)
       .merge(options.circuit_defaults)
   end
 end

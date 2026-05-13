@@ -18,11 +18,9 @@ Benchmark.bm(width) do |b|
 
   b.report('memory storage failures') do
     n.times do
-      begin
-        in_memory.circuit(:memory_fail, sample_threshold: n + 1).run { raise 'fail' }
-      rescue StandardError
-        # Expected to raise here
-      end
+      in_memory.circuit(:memory_fail, sample_threshold: n + 1).run { raise 'fail' }
+    rescue StandardError
+      # Expected to raise here
     end
   end
 
@@ -42,11 +40,9 @@ Benchmark.bm(width) do |b|
 
   b.report('redis storage failures') do
     n.times do
-      begin
-        redis.circuit(:memory_fail, sample_threshold: n + 1).run { raise 'fail' }
-      rescue StandardError
-        # Expected to raise here
-      end
+      redis.circuit(:memory_fail, sample_threshold: n + 1).run { raise 'fail' }
+    rescue StandardError
+      # Expected to raise here
     end
   end
 

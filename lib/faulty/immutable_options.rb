@@ -5,12 +5,12 @@ class Faulty
   module ImmutableOptions
     # @param hash [Hash] A hash of attributes to initialize with
     # @yield [self] Yields itself to the block to set options before freezing
-    def initialize(hash, &block)
-      setup(defaults.merge(hash), &block)
+    def initialize(hash, &)
+      setup(defaults.merge(hash), &)
     end
 
-    def dup_with(hash, &block)
-      dup.setup(hash, &block)
+    def dup_with(hash, &)
+      dup.setup(hash, &)
     end
 
     def setup(hash)

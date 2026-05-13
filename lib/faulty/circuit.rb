@@ -178,11 +178,11 @@ class Faulty
     # @param name [String] The name of the circuit
     # @param options [Hash] Attributes for {Options}
     # @yield [Options] For setting options in a block
-    def initialize(name, **options, &block)
+    def initialize(name, **options, &)
       raise ArgumentError, 'name must be a String' unless name.is_a?(String)
 
       @name = name
-      @given_options = Options.new(options, &block)
+      @given_options = Options.new(options, &)
       @pulled_options = nil
       @options_pushed = false
     end
@@ -266,8 +266,8 @@ class Faulty
     # @return [Result<Object, Error>] A result where the ok value is the return
     #   value of the block, or the error value is an error captured by the
     #   circuit.
-    def try_run(**options, &block)
-      Result.new(ok: run(**options, &block))
+    def try_run(...)
+      Result.new(ok: run(...))
     rescue FaultyError => e
       Result.new(error: e)
     end
