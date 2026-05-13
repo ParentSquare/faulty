@@ -14,6 +14,11 @@ gem 'activesupport', '>= 4.2'
 gem 'byebug', platforms: not_jruby
 gem 'honeybadger', '>= 2.0'
 gem 'irb', '~> 1.0'
+# stdlib `logger` became a bundled gem in Ruby 3.5. The runtime only needs
+# it when the default LogListener actually constructs a Logger; we pull it
+# in here so the test suite and `bin/benchmark` boot the default Faulty
+# pipeline without forcing it on consumers who supply their own listeners.
+gem 'logger'
 # Minimum of 0.5.0 for specific error classes
 gem 'mysql2', '>= 0.5.0', platforms: not_jruby
 gem 'redcarpet', '~> 3.5', platforms: not_jruby
