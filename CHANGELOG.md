@@ -9,6 +9,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]
 -------------------
 
+[0.12.0] - 2026-05-13
+---------------------
+
+Runtime behavior is unchanged from `0.11.0` — the version bump reflects
+support-policy and toolchain breaking changes only. Upgrading should be
+a drop-in replacement on any supported Ruby.
+
+### Breaking
+
+* Drop support for Ruby < 3.1. Ruby 2.3 – 3.0 are EOL upstream and are no
+  longer covered by CI. Faulty now requires Ruby 3.1 or newer.
+* `faulty.gemspec` declares `required_ruby_version = '>= 3.1'`, so older
+  Rubies will refuse to install the gem.
+
+### Changed
+
+* Modernize the CI matrix: Ruby `3.1`, `3.2`, `3.3`, `3.4`, `jruby-head`,
+  and `truffleruby-head`; Redis 4 and 5; OpenSearch `2.19.5` (default) and
+  `3.0.0`; Elasticsearch `7.17.x` for back-compat coverage. The
+  Elasticsearch 7.17 row runs the `elasticsearch:7.17.28` Docker image
+  (which ships a JDK that handles cgroupv2 on current runners) against
+  the `elasticsearch ~> 7.17.11` gem.
+* Pass `DISABLE_INSTALL_DEMO_CONFIG=true` to the OpenSearch service
+  container so OpenSearch 2.12+ doesn't require an admin-password env
+  var just to boot up with the security plugin disabled.
+* Replace the deprecated `:mingw` / `:x64_mingw` platform symbols in the
+  `Gemfile` with the unified `:windows` symbol Bundler now expects.
+* Upgrade development dependencies: `rubocop ~> 1.84`, `rubocop-rspec ~> 3.9`,
+  `simplecov-cobertura ~> 3.1`, `opensearch-ruby ~> 3.4`.
+* `LogListener` now lazy-requires `logger` only when constructing the
+  default `Logger.new($stderr)`. Consumers that pass their own logger or
+  run under Rails do not need the stdlib `logger` gem on the load path.
+  This keeps Faulty boot-clean on Ruby 3.5+ where `logger` is no longer a
+  default gem.
+
+### Removed
+
+* Drop Redis 3 from the test matrix.
+* Drop the Ruby 2.3 carve-out in `spec/spec_helper.rb` that conditionally
+  loaded the `mysql2` patch.
+
 [0.11.0] - 2023-04-26
 ---------------------
 
