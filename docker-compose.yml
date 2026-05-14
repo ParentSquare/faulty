@@ -1,0 +1,24 @@
+# Dev-only stack for spec dependencies. All services run with auth disabled
+# or default credentials, so ports are bound to 127.0.0.1 to keep them off
+# any other network interface.
+services:
+  mysql:
+    image: mysql:8.0.31
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+    ports:
+      - "127.0.0.1:3306:3306"
+
+  redis:
+    image: redis:6.2
+    entrypoint: redis-server --appendonly yes
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  opensearch:
+    image: opensearchproject/opensearch:2.7.0
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+    ports:
+      - "127.0.0.1:9200:9200"

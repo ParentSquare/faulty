@@ -105,6 +105,16 @@ class Faulty
         end
       end
 
+      # Reserve a half-open run in the first available storage backend
+      #
+      # @param (see Interface#reserve)
+      # @return (see Interface#reserve)
+      def reserve(circuit, reserved_at, previous_reserved_at)
+        send_chain(:reserve, circuit, reserved_at, previous_reserved_at) do |e|
+          options.notifier.notify(:storage_failure, circuit: circuit, action: :reserve, error: e)
+        end
+      end
+
       # Lock a circuit in all storage backends
       #
       # @param (see Interface#lock)

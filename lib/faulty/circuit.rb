@@ -49,6 +49,10 @@ class Faulty
     # @!attribute [r] cool_down
     #   @return [Integer] The number of seconds the circuit will
     #     stay open after it is tripped. Default 300.
+    #
+    #     Also bounds the half-open reservation TTL — runs longer than
+    #     `cool_down` lose exclusivity. See the "How it Works" section
+    #     of the README.
     # @!attribute [r] error_mapper
     #   @return [Module, #call] Used by patches to set the namespace module for
     #     the faulty errors that will be raised. Should be a module or a callable.
@@ -308,9 +312,11 @@ class Faulty
       return cached_value if !cached_value.nil? && !cache_should_refresh?(cache)
 
       current_status = status
-      return run_skipped(cached_value) unless current_status.can_run?
-
-      run_exec(current_status, cached_value, cache, &block)
+      if current_status.can_run? && reserve(current_status)
+        run_exec(current_status, cached_value, cache, &block)
+      else
+        run_skipped(cached_value)
+      end
     end
 
     # Force the circuit to stay open until unlocked
@@ -401,6 +407,32 @@ class Faulty
       raise map_error(:OpenCircuitError) if cached_value.nil?
 
       cached_value
+    end
+
+    # Reserves execution for this circuit when it is half-open
+    #
+    # This prevents concurrent evaluation from allowing multiple simultaneous
+    # runs for half-open circuits. For non-half-open states this is a no-op
+    # that returns true so closed and locked-closed circuits run unconditionally.
+    #
+    # `locked_closed?` is checked before `half_open?` to mirror the operator-
+    # override hierarchy in {Status#can_run?}: a locked-closed circuit must
+    # always proceed regardless of the underlying state, even if another
+    # process is currently holding the reservation. Without this, a locked-
+    # closed circuit could lose the storage CAS to a concurrent process and
+    # be incorrectly skipped.
+    #
+    # @param status [Status] The current status of the circuit
+    # @return [Boolean] True if this call may proceed to execute the block
+    def reserve(status)
+      return true if status.locked_closed?
+      return true unless status.half_open?
+
+      # Persist a fresh Faulty.current_time, not status.current_time. The
+      # snapshot exists for predicate consistency (see Status#current_time);
+      # the stored reserved_at should reflect when the reservation was made,
+      # not when the snapshot was taken.
+      storage.reserve(self, Faulty.current_time, status.reserved_at)
     end
 
     # Execute a run

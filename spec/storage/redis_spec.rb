@@ -51,6 +51,17 @@ RSpec.describe Faulty::Storage::Redis do
       end
       expect(result.count { |r| r }).to eq(1)
     end
+
+    it 'reserves the circuit once when called concurrently', :concurrency do
+      concurrent_warmup do
+        storage.unlock(circuit)
+      end
+
+      result = concurrently(pool_size) do
+        storage.reserve(circuit, Faulty.current_time, nil)
+      end
+      expect(result.count { |r| r }).to eq(1)
+    end
   end
 
   context 'when Redis has high timeout' do
@@ -100,6 +111,17 @@ RSpec.describe Faulty::Storage::Redis do
     it 'warns and continues' do
       expect { storage }.to output(/while checking client options: fail/).to_stderr
     end
+  end
+
+  # See spec/storage/memory_spec.rb for the rationale: preserving reserved_at
+  # across reopen is load-bearing for half-open exclusivity against
+  # late-arriving callers whose status snapshot saw reserved_at == nil from
+  # before the winning process reserved.
+  it 'does not clear reserved_at on reopen' do
+    storage.open(circuit, 100.0)
+    storage.reserve(circuit, 100.0, nil)
+    storage.reopen(circuit, 200.0, 100.0)
+    expect(storage.status(circuit).reserved_at).to eq(100.0)
   end
 
   context 'when opened_at is missing and status is open' do

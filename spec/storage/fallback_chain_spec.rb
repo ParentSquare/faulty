@@ -166,6 +166,13 @@ RSpec.describe Faulty::Storage::FallbackChain do
     it_behaves_like 'chained method'
   end
 
+  describe '#reserve' do
+    let(:action) { :reserve }
+    let(:args) { [circuit, Faulty.current_time, nil] }
+
+    it_behaves_like 'chained method'
+  end
+
   describe '#lock' do
     let(:action) { :lock }
     let(:args) { [circuit, :open] }

@@ -16,9 +16,19 @@ class Faulty
   #   @return [:open, :closed, nil] If the circuit is locked, the state that
   #     it is locked in. Default `nil`.
   # @!attribute [r] opened_at
-  #   @return [Integer, nil] If the circuit is open, the timestamp that it was
-  #     opened. This is not necessarily reset when the circuit is closed.
-  #     Default `nil`.
+  #   @return [Float, nil] If the circuit is open, the timestamp ({Faulty.current_time})
+  #     that it was opened. This is not necessarily reset when the circuit
+  #     is closed. Default `nil`.
+  # @!attribute [r] reserved_at
+  #   @return [Float, nil] If a half-open test run was reserved, the
+  #     timestamp ({Faulty.current_time}) of that reservation. Cleared when
+  #     the circuit is closed.
+  #     Not reset by {Storage::Interface#reopen}; the value naturally expires
+  #     via `cool_down`. Default `nil`.
+  #
+  #     Only meaningful when {#state} is `:open`. If a backend race or bug
+  #     produces an inconsistent shape (`state == :closed` with a non-nil
+  #     `reserved_at`), it is normalized to `nil` at construction.
   # @!attribute [r] failure_rate
   #   @return [Float] A number from 0 to 1 representing the percentage of
   #     failures for the circuit. For exmaple 0.5 represents a 50% failure rate.
@@ -34,6 +44,7 @@ class Faulty
     :state,
     :lock,
     :opened_at,
+    :reserved_at,
     :failure_rate,
     :sample_size,
     :options,
@@ -42,6 +53,19 @@ class Faulty
 
   class Status
     include ImmutableOptions
+
+    # @return [Float] The point in time captured when this status was built.
+    #   All predicates (`open?`, `half_open?`, `reserved?`) reason about
+    #   this same instant so they are mutually consistent. Held as an
+    #   instance variable rather than a struct field so it does not leak
+    #   into `to_h`, `==`, or `members` — those should reflect persisted
+    #   circuit state, not a transient predicate-consistency snapshot.
+    attr_reader :current_time
+
+    def initialize(hash, &)
+      @current_time = hash[:current_time] || Faulty.current_time
+      super(hash.except(:current_time), &)
+    end
 
     # The allowed state values
     STATES = %i[
@@ -66,7 +90,8 @@ class Faulty
     #   sample_size
     # @return [Status]
     def self.from_entries(entries, **hash)
-      window_start = Faulty.current_time - hash[:options].evaluation_window
+      current_time = Faulty.current_time
+      window_start = current_time - hash[:options].evaluation_window
       size = entries.size
       i = 0
       failures = 0
@@ -84,7 +109,8 @@ class Faulty
 
       new(hash.merge(
         sample_size: sample_size,
-        failure_rate: sample_size.zero? ? 0.0 : failures.to_f / sample_size
+        failure_rate: sample_size.zero? ? 0.0 : failures.to_f / sample_size,
+        current_time: current_time
       ))
     end
 
@@ -94,7 +120,7 @@ class Faulty
     #
     # @return [Boolean] True if open
     def open?
-      state == :open && opened_at + options.cool_down > Faulty.current_time
+      state == :open && opened_at + options.cool_down > current_time
     end
 
     # Whether the circuit is closed
@@ -112,7 +138,7 @@ class Faulty
     #
     # @return [Boolean] True if half-open
     def half_open?
-      state == :open && opened_at + options.cool_down <= Faulty.current_time
+      state == :open && opened_at + options.cool_down <= current_time
     end
 
     # Whether the circuit is locked open
@@ -129,15 +155,42 @@ class Faulty
       lock == :closed
     end
 
+    # Whether a half-open test run is currently reserved
+    #
+    # Process-agnostic: returns true whenever an unexpired reservation exists
+    # on this circuit, regardless of who made it. The "did someone else reserve
+    # this?" interpretation only applies when this predicate is read on a
+    # status snapshot taken *before* the caller attempts {Storage::Interface#reserve};
+    # a caller introspecting their own status after a successful reserve will
+    # also see `true` here.
+    #
+    # The reservation expires after `cool_down` to handle the case where the
+    # process that made the reservation crashes before resolving the circuit.
+    # Side effect: a legitimately-slow test run that exceeds `cool_down`
+    # loses exclusivity (another process may reserve and run concurrently).
+    # See the "How it Works" section of the README for the full trade-off.
+    #
+    # @return [Boolean] True if a reservation is in effect
+    def reserved?
+      return false unless reserved_at
+
+      state == :open && reserved_at + options.cool_down > current_time
+    end
+
     # Whether the circuit can be run
     #
-    # Takes the circuit state, locks and cooldown into account
+    # Takes the circuit state, locks and cooldown into account. Locks are
+    # operator overrides and take precedence over both state and reservation,
+    # so a `locked_closed?` circuit always runs and a `locked_open?` circuit
+    # never runs.
     #
     # @return [Boolean] True if the circuit can be run
     def can_run?
       return false if locked_open?
+      return true if locked_closed?
+      return false if reserved?
 
-      closed? || locked_closed? || half_open?
+      closed? || half_open?
     end
 
     # Whether the circuit fails the sample size and rate thresholds
@@ -155,6 +208,14 @@ class Faulty
         raise ArgumentError, "lock must be a symbol in #{self.class}::LOCKS or nil"
       end
       raise ArgumentError, 'opened_at is required if state is open' if state == :open && opened_at.nil?
+
+      # `reserved_at` is only meaningful while the circuit is open. Backends
+      # are expected to clear it on close, but if a brief race or backend bug
+      # leaves a stale value paired with `state == :closed`, normalize it
+      # here so downstream code can rely on the invariant without checking
+      # `state` first. Sanitizing rather than raising avoids turning a
+      # transient backend inconsistency into a production crash.
+      self.reserved_at = nil if state == :closed && !reserved_at.nil?
     end
 
     def required

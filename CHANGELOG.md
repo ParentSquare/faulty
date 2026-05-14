@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]
 -------------------
 
+[0.13.0] - 2026-05-13
+---------------------
+
+### Added
+
+* Reserve half-open test runs across processes so only one process executes
+  the test block when a circuit becomes half-open. justinhoward
+
+### Changed
+
+* `Faulty::Status` now captures `current_time` once when the status is built,
+  so all predicates (`open?`, `half_open?`, `reserved?`) reason about the same
+  point in time. Previously each predicate called `Faulty.current_time`
+  independently. justinhoward
+* `Storage::Redis#close` now also clears the `reserved_at` key. justinhoward
+
+### Fixed
+
+* `Storage::Redis#reserve` uses safe navigation when serializing
+  `previous_reserved_at` for `WATCH`, so the very first CAS against a missing
+  key compares correctly. justinhoward
+* `Storage::Redis#reset` now clears the `reserved_at` key. justinhoward
+* `Status#can_run?` now treats `locked_closed?` as an unconditional override,
+  so a manually locked-closed circuit runs even when a half-open reservation
+  is still in effect from a prior cycle. justinhoward
+
+### Breaking Changes
+
+* `Storage::Interface` adds a required `#reserve(circuit, reserved_at,
+  previous_reserved_at)` method. Custom storage backends must implement it,
+  and the `Status` value object must carry the new `reserved_at` attribute.
+  See `Storage::Interface#reserve` for the contract and the conformance
+  test in `spec/storage/interface_spec.rb` for the structural guarantee.
+
 [0.12.0] - 2026-05-13
 ---------------------
 
@@ -349,7 +383,9 @@ of AutoWire.
 
 Initial public release
 
-[Unreleased]: https://github.com/ParentSquare/faulty/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/ParentSquare/faulty/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/ParentSquare/faulty/compare/v0.12.0...v0.13.0
+[0.12.0]: https://github.com/ParentSquare/faulty/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/ParentSquare/faulty/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/ParentSquare/faulty/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/ParentSquare/faulty/compare/v0.8.7...v0.9.0

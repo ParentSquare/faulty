@@ -100,6 +100,26 @@ RSpec.context :circuits do
       expect(open_circuit.run { 'ok' }).to eq('ok')
     end
 
+    it 'ignores an active reservation when locked closed' do
+      open_circuit
+      Timecop.freeze(Time.now + 300)
+      storage.reserve(open_circuit, Faulty.current_time, nil)
+      open_circuit.lock_closed!
+
+      expect(open_circuit.run { 'ok' }).to eq('ok')
+    end
+
+    it 'still runs when locked closed even if storage reservation would fail' do
+      open_circuit
+      Timecop.freeze(Time.now + 300)
+      open_circuit.lock_closed!
+
+      allow(storage).to receive(:reserve).and_return(false)
+
+      expect(open_circuit.run { 'ok' }).to eq('ok')
+      expect(storage).not_to have_received(:reserve)
+    end
+
     it 'can be unlocked from the locked_open state' do
       circuit.lock_open!
       circuit.unlock!
@@ -166,6 +186,95 @@ RSpec.context :circuits do
       result = open_circuit.run { 'ok' }
       expect(result).to eq('ok')
       expect(open_circuit.status.closed?).to be(true)
+    end
+
+    it 'prevents concurrent circuit executions while half-open' do
+      open_circuit
+      Timecop.freeze(Time.now + 300)
+      expect(open_circuit.status.half_open?).to be(true)
+
+      block_runs = Concurrent::AtomicFixnum.new(0)
+      sync = Concurrent::CyclicBarrier.new(2)
+
+      winner = Thread.new do
+        open_circuit.try_run do
+          block_runs.increment
+          sync.wait(3) || raise('timeout waiting for loser to start')
+          sync.wait(3) || raise('timeout waiting for loser to finish')
+          'ok'
+        end
+      end
+
+      loser = Thread.new do
+        sync.wait(3) || raise('timeout waiting for winner to reserve')
+        result = open_circuit.try_run do
+          block_runs.increment
+          'unexpected'
+        end
+        sync.wait(3) || raise('timeout signaling winner')
+        result
+      end
+
+      winner_result = winner.value
+      loser_result = loser.value
+
+      expect(block_runs.value).to eq(1)
+      expect(loser_result.error?).to be(true)
+      expect(loser_result.error).to be_a(Faulty::OpenCircuitError)
+      expect(winner_result.ok?).to be(true)
+      expect(winner_result.get).to eq('ok')
+      expect(open_circuit.status.closed?).to be(true)
+      expect(open_circuit.status.reserved_at).to be_nil
+    end
+
+    it 'resets half-open reservation after cool-down period' do
+      open_circuit
+      Timecop.freeze(Time.now + 300)
+      expect(open_circuit.status.half_open?).to be(true)
+
+      expect(storage.reserve(open_circuit, Faulty.current_time, nil)).to be(true)
+      expect(open_circuit.status.can_run?).to be(false)
+
+      Timecop.freeze(Time.now + 301)
+      expect(open_circuit.status.can_run?).to be(true)
+    end
+
+    # Storage#reopen MUST NOT clear reserved_at. The prior cycle's
+    # reservation expires naturally at opened_at_new + cool_down, which is
+    # exactly when the next half-open window opens, so the previous value is
+    # the correct WATCH baseline for the next cycle's CAS.
+    it 'allows a fresh reservation on the second half-open cycle after a failure' do
+      open_circuit
+      Timecop.freeze(Time.now + 300)
+      open_circuit.try_run { raise 'fail in half-open' }
+      expect(open_circuit.status.open?).to be(true)
+
+      Timecop.freeze(Time.now + 300)
+      expect(open_circuit.status.half_open?).to be(true)
+      expect(open_circuit.status.reserved?).to be(false)
+      expect(open_circuit.run { 'ok' }).to eq('ok')
+      expect(open_circuit.status.closed?).to be(true)
+    end
+
+    it 'clears reserved_at when a successful half-open run closes the circuit' do
+      open_circuit
+      Timecop.freeze(Time.now + 300)
+      expect(open_circuit.status.half_open?).to be(true)
+
+      expect(open_circuit.run { 'ok' }).to eq('ok')
+
+      expect(open_circuit.status.closed?).to be(true)
+      expect(open_circuit.status.reserved_at).to be_nil
+    end
+
+    it 'clears reserved_at on reset' do
+      open_circuit
+      Timecop.freeze(Time.now + 300)
+      expect(storage.reserve(open_circuit, Faulty.current_time, nil)).to be(true)
+      expect(open_circuit.status.reserved_at).not_to be_nil
+
+      open_circuit.reset!
+      expect(open_circuit.status.reserved_at).to be_nil
     end
 
     it 'skips running if open' do
