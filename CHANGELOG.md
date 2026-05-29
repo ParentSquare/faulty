@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]
 -------------------
 
+[0.13.1] - 2026-05-29
+---------------------
+
+### Fixed
+
+* `Cache::AutoWire.wrap` now applies `CircuitProxy` and `FaultTolerantProxy`
+  to `Cache::Default` when the resolved backend is not fault tolerant (e.g.
+  `Rails.cache`). Previously a `nil` cache short-circuited the wrapping and
+  could leave the auto-wired cache non-fault-tolerant. justinhoward
+
 [0.13.0] - 2026-05-13
 ---------------------
 
