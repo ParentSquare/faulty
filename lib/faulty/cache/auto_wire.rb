@@ -29,7 +29,10 @@ class Faulty
       class << self
         # Wrap a cache backend with sensible defaults
         #
-        # If the cache is `nil`, create a new {Default}.
+        # If the cache is `nil`, create a new {Default}. Since {Default} may
+        # resolve to a non-fault-tolerant backend (e.g. `Rails.cache`), the
+        # result is passed back through {wrap} so it still receives the
+        # {CircuitProxy} and {FaultTolerantProxy} wrappers when needed.
         #
         # If the backend is not fault tolerant, wrap it in {CircuitProxy} and
         # {FaultTolerantProxy}.
@@ -40,7 +43,7 @@ class Faulty
         def wrap(cache, **options, &)
           options = Options.new(options, &)
           if cache.nil?
-            Cache::Default.new
+            wrap(Cache::Default.new, **options.to_h)
           elsif cache.fault_tolerant?
             cache
           else
